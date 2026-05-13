@@ -19,7 +19,7 @@ let ffmpegTarget: Target = useLocalFFmpeg
 	: .binaryTarget(
 		name: "FFmpeg",
 		url: "https://github.com/jasminlapalme/SwiftRTSPPlayer/releases/download/ffmpeg-n8.1.1/FFmpeg.xcframework.zip",
-		checksum: "0000000000000000000000000000000000000000000000000000000000000000"
+		checksum: "0ff151ea7d155211f1cda009d8c9a1d1703ca95fa9967481a2d48e55fd96940e"
 	)
 
 let package = Package(
