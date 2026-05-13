@@ -1,0 +1,416 @@
+{
+  "sourceLanguage" : "en",
+  "strings" : {
+    "error.cannotCreateDecompressionSession" : {
+      "comment" : "Error message when VTDecompressionSessionCreate fails.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot create H.264 decompression session"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de créer la session de décompression H.264"
+          }
+        }
+      }
+    },
+    "error.cannotCreateFormatDescription" : {
+      "comment" : "Error message when CMVideoFormatDescriptionCreateFromH264ParameterSets fails.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot create H.264 format description"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de créer la description de format H.264"
+          }
+        }
+      }
+    },
+    "error.cannotFindStreamInfo" : {
+      "comment" : "Error message when avformat_find_stream_info fails.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot find stream info"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible de trouver les informations du flux"
+          }
+        }
+      }
+    },
+    "error.cannotOpenURL" : {
+      "comment" : "Error message when avformat_open_input fails on the supplied RTSP URL.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cannot open RTSP URL"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Impossible d’ouvrir l’URL RTSP"
+          }
+        }
+      }
+    },
+    "error.noH264Stream" : {
+      "comment" : "Error message when the RTSP source contains no H.264 video stream.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No H.264 stream"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucun flux H.264"
+          }
+        }
+      }
+    },
+    "error.unsupportedScheme" : {
+      "comment" : "Error message when the URL scheme is anything other than rtsp:// or rtsps://.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Unsupported URL scheme; expected rtsp:// or rtsps://"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Schéma d’URL non pris en charge ; attendu rtsp:// ou rtsps://"
+          }
+        }
+      }
+    },
+    "fisheye.k1" : {
+      "comment" : "Label of the fisheye k1 coefficient slider.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "k1"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "k1"
+          }
+        }
+      }
+    },
+    "fisheye.k2" : {
+      "comment" : "Label of the fisheye k2 coefficient slider.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "k2"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "k2"
+          }
+        }
+      }
+    },
+    "fisheye.k3" : {
+      "comment" : "Label of the fisheye k3 coefficient slider.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "k3"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "k3"
+          }
+        }
+      }
+    },
+    "fisheye.k4" : {
+      "comment" : "Label of the fisheye k4 coefficient slider.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "k4"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "k4"
+          }
+        }
+      }
+    },
+    "playback.connecting" : {
+      "comment" : "Status overlay shown while the player is establishing the initial RTSP connection.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connecting to stream…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Connexion au flux…"
+          }
+        }
+      }
+    },
+    "transform.allDefaults" : {
+      "comment" : "Button label that resets all transform controls to their defaults.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "All defaults"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tout réinitialiser"
+          }
+        }
+      }
+    },
+    "transform.close" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Close"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fermer"
+          }
+        }
+      }
+    },
+    "transform.configure" : {
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configure"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Configurer"
+          }
+        }
+      }
+    },
+    "transform.fine" : {
+      "comment" : "Toggle that enables fine-grained adjustments on the transform sliders.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fine mode"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mode fin"
+          }
+        }
+      }
+    },
+    "transform.rotation" : {
+      "comment" : "Label of the rotation slider in the transform control panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rotation"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Rotation"
+          }
+        }
+      }
+    },
+    "transform.scale" : {
+      "comment" : "Label of the scale slider in the transform control panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Scale"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échelle"
+          }
+        }
+      }
+    },
+    "transform.swipeHint" : {
+      "comment" : "Hint shown under the selected slider, telling the user to swipe horizontally to adjust the value.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "← SWIPE TO ADJUST →"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "← GLISSER POUR AJUSTER →"
+          }
+        }
+      }
+    },
+    "transform.tab.fisheye" : {
+      "comment" : "Tab title for the fisheye correction section of the transform control panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fisheye"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fisheye"
+          }
+        }
+      }
+    },
+    "transform.tab.transform" : {
+      "comment" : "Tab title for the transform section of the transform control panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transform"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transformation"
+          }
+        }
+      }
+    },
+    "transform.title" : {
+      "comment" : "Title of the transform control panel that adjusts scale, translation and rotation.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transform"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Transformation"
+          }
+        }
+      }
+    },
+    "transform.translateX" : {
+      "comment" : "Label of the X-axis translation slider in the transform control panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trans X"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trans X"
+          }
+        }
+      }
+    },
+    "transform.translateY" : {
+      "comment" : "Label of the Y-axis translation slider in the transform control panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trans Y"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trans Y"
+          }
+        }
+      }
+    }
+  },
+  "version" : "1.0"
+}

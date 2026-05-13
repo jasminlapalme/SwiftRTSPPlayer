@@ -1,0 +1,14 @@
+.DS_Store
+/.build
+/Packages
+xcuserdata/
+DerivedData/
+.swiftpm/configuration/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.netrc
+.claude
+CLAUDE.local.md
+/Frameworks/FFmpeg*.xcframework
+/Frameworks/FFmpeg*.xcframework.zip
+/Scripts/ffmpeg
+/Scripts/build

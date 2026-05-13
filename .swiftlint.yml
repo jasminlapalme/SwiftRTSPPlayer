@@ -1,0 +1,24 @@
+included:
+  - Sources
+  - Tests
+  - Demos
+
+excluded:
+  - .build
+  - Frameworks
+  - Demos/DemoSwiftRTSPPlayer/DemoSwiftRTSPPlayer.xcodeproj
+
+opt_in_rules:
+  - empty_count
+  - empty_string
+  - explicit_init
+  - first_where
+  - redundant_nil_coalescing
+  - toggle_bool
+
+identifier_name:
+  excluded:
+    - AVERROR_EOF
+    - AVERROR_EXIT
+
+reporter: xcode
