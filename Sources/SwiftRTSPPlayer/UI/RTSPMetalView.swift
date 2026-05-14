@@ -38,6 +38,7 @@ public final class RTSPMetalView: RTSPPlatformView {
 	private var hasRenderedFrame = false
 	private var playbackState: RTSPPlaybackState = .stopped
 	private var playbackStateContinuation: AsyncStream<RTSPPlaybackState>.Continuation?
+	private var holdsIdleTimer = false
 
 	// MARK: - Reconnection
 
@@ -114,6 +115,7 @@ public final class RTSPMetalView: RTSPPlatformView {
 	// MARK: - Public API
 
 	public func play(url: URL) {
+		acquireIdleTimer()
 		connect(url: url)
 	}
 
@@ -125,7 +127,24 @@ public final class RTSPMetalView: RTSPPlatformView {
 		Task { await stoppedPipeline?.stop() }
 		self.pipeline = nil
 		hasRenderedFrame = false
+		releaseIdleTimer()
 		setPlaybackState(.stopped)
+	}
+
+	private func acquireIdleTimer() {
+		#if os(iOS) || os(tvOS) || os(macOS)
+		guard !holdsIdleTimer else { return }
+		holdsIdleTimer = true
+		IdleTimerCoordinator.acquire()
+		#endif
+	}
+
+	private func releaseIdleTimer() {
+		#if os(iOS) || os(tvOS) || os(macOS)
+		guard holdsIdleTimer else { return }
+		holdsIdleTimer = false
+		IdleTimerCoordinator.release()
+		#endif
 	}
 
 	// MARK: - Connect / Reconnect
