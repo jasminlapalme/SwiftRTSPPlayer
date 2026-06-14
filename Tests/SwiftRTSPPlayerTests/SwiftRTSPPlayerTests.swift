@@ -158,9 +158,9 @@ struct ExtractParameterSetsFromAVCCTests {
 			Issue.record("expected non-nil result for valid AVCC bytes")
 			return
 		}
-		#expect(result.0 == Data(sps))
-		#expect(result.1 == Data(pps))
-		#expect(result.2 == 4)
+		#expect(result.sps == Data(sps))
+		#expect(result.pps == Data(pps))
+		#expect(result.nalUnitHeaderLength == 4)
 	}
 
 	@Test("PPS section truncated after SPS → nil")

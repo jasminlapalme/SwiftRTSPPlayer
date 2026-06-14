@@ -1,6 +1,60 @@
 {
   "sourceLanguage" : "en",
   "strings" : {
+    "cameras.empty" : {
+      "comment" : "Shown in the cameras tab when the network scan found no ONVIF camera.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No cameras found"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune caméra trouvée"
+          }
+        }
+      }
+    },
+    "cameras.password" : {
+      "comment" : "Placeholder of the camera password field in the cameras tab.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Password"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Mot de passe"
+          }
+        }
+      }
+    },
+    "cameras.username" : {
+      "comment" : "Placeholder of the camera username field in the cameras tab.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Username"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Utilisateur"
+          }
+        }
+      }
+    },
     "error.cannotCreateDecompressionSession" : {
       "comment" : "Error message when VTDecompressionSessionCreate fails.",
       "extractionState" : "manual",
@@ -87,6 +141,96 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Aucun flux H.264"
+          }
+        }
+      }
+    },
+    "error.onvif.fault" : {
+      "comment" : "Error shown when the camera answers an ONVIF request with a SOAP fault without a reason text.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The camera rejected the request — check the credentials"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La caméra a refusé la requête — vérifiez les identifiants"
+          }
+        }
+      }
+    },
+    "error.onvif.invalidResponse" : {
+      "comment" : "Error shown when an ONVIF request fails or returns a non-HTTP response.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Invalid response from the camera"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réponse invalide de la caméra"
+          }
+        }
+      }
+    },
+    "error.onvif.malformedStreamURL" : {
+      "comment" : "Error shown when GetStreamUri returns a string that is not a valid URL.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The camera returned an invalid stream URL"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La caméra a retourné une URL de flux invalide"
+          }
+        }
+      }
+    },
+    "error.onvif.noProfiles" : {
+      "comment" : "Error shown when GetProfiles returns no media profile.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The camera exposes no media profile"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "La caméra n’expose aucun profil média"
+          }
+        }
+      }
+    },
+    "error.onvif.requestFailed %lld" : {
+      "comment" : "Error shown when an ONVIF request returns an HTTP error status. The argument is the HTTP status code.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Camera request failed (HTTP %lld)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de la requête à la caméra (HTTP %lld)"
           }
         }
       }
@@ -321,6 +465,24 @@
         }
       }
     },
+    "transform.tab.cameras" : {
+      "comment" : "Tab title for the ONVIF camera discovery section of the transform control panel.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Cameras"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Caméras"
+          }
+        }
+      }
+    },
     "transform.tab.fisheye" : {
       "comment" : "Tab title for the fisheye correction section of the transform control panel.",
       "extractionState" : "manual",
@@ -352,25 +514,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Transformation"
-          }
-        }
-      }
-    },
-    "transform.title" : {
-      "comment" : "Title of the transform control panel that adjusts scale, translation and rotation.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transform"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transformation"
+            "value" : "Transform."
           }
         }
       }

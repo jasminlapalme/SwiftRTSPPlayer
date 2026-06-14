@@ -85,6 +85,30 @@ private struct PreviewBackdrop: View {
 	.preferredColorScheme(.light)
 }
 
+#Preview("With cameras") {
+	@Previewable @State var scale: CGFloat = 1.0
+	@Previewable @State var translation: CGPoint = .zero
+	@Previewable @State var rotation: CGFloat = 0
+	@Previewable @State var fisheye: FisheyeCorrection = .identity
+	@Previewable @State var cameraURL = URL(string: "rtsp://192.168.1.30/stream")!
+
+	ZStack {
+		PreviewBackdrop()
+		VStack {
+			Spacer()
+			RTSPTransformControlPanel(
+				scale: $scale,
+				translation: $translation,
+				rotation: $rotation,
+				fisheyeCorrection: $fisheye,
+				cameraURL: $cameraURL
+			)
+			.padding()
+		}
+	}
+	.preferredColorScheme(.dark)
+}
+
 #Preview("With fisheye (dark)") {
 	@Previewable @State var scale: CGFloat = 1.0
 	@Previewable @State var translation: CGPoint = .zero

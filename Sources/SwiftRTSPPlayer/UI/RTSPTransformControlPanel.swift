@@ -52,22 +52,26 @@ public struct RTSPTransformControlPanel: View {
 
 	private let closeAction: () -> Void
 	private let configureAction: () -> Void
+	private let cameraURL: Binding<URL>?
 
 #if !os(tvOS)
-	@State private var selectedField: Field?
+	@State var selectedField: Field?
 #endif
-	@State private var isFineMode: Bool = false
+	@State var isFineMode: Bool = false
 	@State private var selectedTab: Tab = .transform
-	@FocusState private var focusedField: Field?
+	/// Height of the fixed-layout tabs (slider rows + footer), used to give the
+	/// cameras tab the same height so the panel doesn't resize between tabs.
+	@State private var fixedTabHeight: CGFloat?
+	@FocusState var focusedField: Field?
 	@FocusState private var focusedTab: Tab?
 
-	private enum Field: Hashable {
+	enum Field: Hashable {
 		case scale, transX, transY, rotation
 		case k1v, k2v, k3v, k4v
 	}
 
 	private enum Tab: Hashable {
-		case transform, fisheye
+		case transform, fisheye, cameras
 	}
 
 	public init(
@@ -90,7 +94,8 @@ public struct RTSPTransformControlPanel: View {
 		rotationSensivity: CGFloat = 1.0,
 		fisheyeSensivity: CGFloat = 0.05,
 		closeAction: @escaping () -> Void = {},
-		configureAction: @escaping () -> Void = {}
+		configureAction: @escaping () -> Void = {},
+		cameraURL: Binding<URL>? = nil
 	) {
 		self._scale = scale
 		self._translation = translation
@@ -113,21 +118,48 @@ public struct RTSPTransformControlPanel: View {
 		self.fisheyeSensivity = fisheyeSensivity
 		self.closeAction = closeAction
 		self.configureAction = configureAction
+		self.cameraURL = cameraURL
+	}
+
+	private var hasCameras: Bool { cameraURL != nil }
+
+	/// The tab whose content is shown — falls back to transform when the
+	/// selected tab's feature isn't enabled.
+	private var effectiveTab: Tab {
+		switch selectedTab {
+		case .fisheye:
+			return hasFisheye ? .fisheye : .transform
+		case .cameras:
+			return hasCameras ? .cameras : .transform
+		case .transform:
+			return .transform
+		}
 	}
 
 	public var body: some View {
 		VStack(alignment: .leading, spacing: 8) {
 			headerBar
-			if selectedTab == .transform || !hasFisheye {
-				transformRows
-			} else {
-				fisheyeRows
+			switch effectiveTab {
+			case .transform:
+				fixedTab { transformRows }
+			case .fisheye:
+				fixedTab { fisheyeRows }
+			case .cameras:
+				if let cameraURL {
+					// Match the fixed tabs' height so switching doesn't resize
+					// the panel; falls back to the view's natural size until a
+					// fixed tab has been measured.
+					ONVIFCameraListView(currentURL: cameraURL)
+						.frame(height: fixedTabHeight, alignment: .top)
+				}
 			}
-			footer
 		}
 		.padding(16)
 		.background(panelBackground)
 		.frame(maxWidth: 720)
+		.onPreferenceChange(FixedTabHeightKey.self) { height in
+			if height > 0 { fixedTabHeight = height }
+		}
 #if os(tvOS)
 		// Focus → tab switch. When entering from outside, snap back to
 		// the active tab to avoid an accidental geometric switch.
@@ -147,6 +179,22 @@ public struct RTSPTransformControlPanel: View {
 #endif
 	}
 
+	/// The slider-row tabs share their layout with the footer; wrapping them
+	/// together lets us measure that combined height and mirror it onto the
+	/// cameras tab (which has no footer).
+	@ViewBuilder
+	private func fixedTab<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
+		VStack(alignment: .leading, spacing: 8) {
+			content()
+			footer
+		}
+		.background(
+			GeometryReader { proxy in
+				Color.clear.preference(key: FixedTabHeightKey.self, value: proxy.size.height)
+			}
+		)
+	}
+
 	// MARK: - Reset
 
 	private func resetAll() {
@@ -157,6 +205,14 @@ public struct RTSPTransformControlPanel: View {
 			translation = defaultTranslation
 			rotation = defaultRotation
 		}
+	}
+}
+
+/// Reports the measured height of the fixed-layout tabs.
+private struct FixedTabHeightKey: PreferenceKey {
+	static let defaultValue: CGFloat = 0
+	static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+		value = max(value, nextValue())
 	}
 }
 
@@ -257,12 +313,21 @@ private extension RTSPTransformControlPanel {
 		HStack(spacing: 16) {
 			tabButton(
 				.transform,
+				systemImage: "crop.rotate",
 				label: String(localized: "transform.tab.transform", bundle: .module)
 			)
 			if hasFisheye {
 				tabButton(
 					.fisheye,
+					systemImage: "camera.aperture",
 					label: String(localized: "transform.tab.fisheye", bundle: .module)
+				)
+			}
+			if hasCameras {
+				tabButton(
+					.cameras,
+					systemImage: "video",
+					label: String(localized: "transform.tab.cameras", bundle: .module)
 				)
 			}
 		}
@@ -275,19 +340,20 @@ private extension RTSPTransformControlPanel {
 	}
 
 	@ViewBuilder
-	private func tabButton(_ tab: Tab, label: String) -> some View {
+	private func tabButton(_ tab: Tab, systemImage: String, label: String) -> some View {
 		let isActive = (selectedTab == tab)
 		let isFocus = (focusedTab == tab)
-		let content = Text(label)
-			.font(.headline)
+		let content = Image(systemName: systemImage)
+			.font(.body)
 			.fontWeight(isFocus || isActive ? .semibold : .regular)
 			.foregroundStyle(
 				isFocus
 					? Color.black
 					: (isActive ? Color.primary : Color.primary.opacity(0.6))
 			)
+			.frame(width: 24, height: 20)
 			.padding(.vertical, 10)
-			.padding(.horizontal, 24)
+			.padding(.horizontal, 18)
 			.background(
 				Capsule(style: .continuous)
 					.fill(isFocus ? Color.white : Color.clear)
@@ -301,6 +367,7 @@ private extension RTSPTransformControlPanel {
 			.animation(.easeInOut(duration: 0.18), value: isFocus)
 			.animation(.easeInOut(duration: 0.18), value: isActive)
 			.contentShape(Capsule())
+			.accessibilityLabel(label)
 #if os(tvOS)
 		content
 			.focusable(true)
@@ -334,102 +401,6 @@ private extension RTSPTransformControlPanel {
 		}
 		.padding()
 	}
-
-	// MARK: - Row
-
-	@ViewBuilder
-	private func row(
-		field: Field,
-		label: String,
-		value: Binding<CGFloat>,
-		range: ClosedRange<CGFloat>,
-		sensivity: CGFloat,
-		ticks: [CGFloat] = []
-	) -> some View {
-		let isSelected = isFieldSelected(field)
-		HStack(spacing: 14) {
-			Text(label)
-				.font(.subheadline)
-				.foregroundStyle(isSelected ? Color.panelAccent : .primary.opacity(0.85))
-				.frame(alignment: .leading)
-
-			VStack(spacing: 2) {
-				PanelSlider(
-					value: value,
-					range: range,
-					sensitivity: isFineMode ? sensivity / 5.0 : sensivity,
-					isSelected: isSelected,
-					ticks: ticks,
-					onInteract: {
-#if !os(tvOS)
-						selectedField = field
-#endif
-					}
-				)
-				.frame(height: 24)
-			}
-		}
-		.padding()
-		#if os(tvOS)
-		.background(
-			RoundedRectangle(cornerRadius: 10, style: .continuous)
-				.fill(isSelected ? Color.panelAccent.opacity(0.12) : .clear)
-		)
-		.overlay(
-			RoundedRectangle(cornerRadius: 10, style: .continuous)
-				.stroke(isSelected ? Color.panelAccent.opacity(0.85) : .clear, lineWidth: 1.5)
-		)
-		.focusable()
-		// On tvOS the Siri remote's clickpad reports left/right presses as
-		// move commands — discrete fallback for the touchpad swipe.
-		.onMoveCommand { direction in
-			applyMoveCommand(direction, value: value, range: range, sensivity: sensivity, ticks: ticks)
-		}
-		#else
-		.onTapGesture { selectedField = field }
-		#endif
-		.contentShape(Rectangle())
-		.focused($focusedField, equals: field)
-		.animation(.easeInOut(duration: 0.18), value: isSelected)
-	}
-
-	private func isFieldSelected(_ field: Field) -> Bool {
-#if os(tvOS)
-		return focusedField == field
-#else
-		return selectedField == field
-#endif
-	}
-
-#if os(tvOS)
-	private func applyMoveCommand(
-		_ direction: MoveCommandDirection,
-		value: Binding<CGFloat>,
-		range: ClosedRange<CGFloat>,
-		sensivity: CGFloat,
-		ticks: [CGFloat]
-	) {
-		let useTicks = !isFineMode && !ticks.isEmpty
-		let span = range.upperBound - range.lowerBound
-		let step = isFineMode ? sensivity / 5.0 : sensivity
-		switch direction {
-		case .left:
-			if useTicks, let prev = ticks.filter({ $0 < value.wrappedValue }).max() {
-				value.wrappedValue = prev
-			} else {
-				value.wrappedValue = max(range.lowerBound, value.wrappedValue - step)
-			}
-		case .right:
-			if useTicks, let next = ticks.filter({ $0 > value.wrappedValue }).min() {
-				value.wrappedValue = next
-			} else {
-				value.wrappedValue = min(range.upperBound, value.wrappedValue + step)
-			}
-		default:
-			break
-		}
-	}
-#endif
 
 	// MARK: - Panel background
 

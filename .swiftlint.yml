@@ -20,5 +20,9 @@ identifier_name:
   excluded:
     - AVERROR_EOF
     - AVERROR_EXIT
+    - id
+
+file_length:
+  warning: 500
 
 reporter: xcode

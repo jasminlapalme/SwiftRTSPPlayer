@@ -25,14 +25,14 @@ struct ContentView: View {
 	@State private var rotation: CGFloat = 0
 	@State private var echelle: CGFloat = 1.0
 	@State private var translation: CGPoint = .zero
-	@State private var indexURL = 0
+	@State private var currentURL = urls[0]
 	@State private var fisheye: FisheyeCorrection = .identity
 	@State private var showsTransformPanel: Bool = true
 
 	var body: some View {
 		VStack {
 			RTSPPlayerView(
-				url: urls[indexURL],
+				url: currentURL,
 				rotation: rotation,
 				scale: echelle,
 				translation: translation,
@@ -45,7 +45,8 @@ struct ContentView: View {
 						scale: $echelle,
 						translation: $translation,
 						rotation: $rotation,
-						fisheyeCorrection: $fisheye
+						fisheyeCorrection: $fisheye,
+						cameraURL: $currentURL
 					)
 					.padding()
 				}
