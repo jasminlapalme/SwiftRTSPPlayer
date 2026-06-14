@@ -20,8 +20,10 @@ struct ONVIFCameraListView: View {
 
 	let currentURL: Binding<URL>
 
-	@State private var username = ""
-	@State private var password = ""
+	/// Owned by the parent panel so the typed credentials survive tab switches —
+	/// this view is torn down when another tab is shown.
+	@Binding var username: String
+	@Binding var password: String
 	@State private var discovered: [ONVIFCamera.ID: (camera: ONVIFCamera, lastSeen: Date)] = [:]
 	@State private var hostnames: [ONVIFCamera.ID: String] = [:]
 	@State private var hostnameRequests: Set<ONVIFCamera.ID> = []

@@ -59,6 +59,10 @@ public struct RTSPTransformControlPanel: View {
 #endif
 	@State var isFineMode: Bool = false
 	@State private var selectedTab: Tab = .transform
+	/// Held here (not in `ONVIFCameraListView`) so the typed ONVIF credentials
+	/// persist when the user switches tabs and comes back to Cameras.
+	@State private var onvifUsername = ""
+	@State private var onvifPassword = ""
 	/// Height of the fixed-layout tabs (slider rows + footer), used to give the
 	/// cameras tab the same height so the panel doesn't resize between tabs.
 	@State private var fixedTabHeight: CGFloat?
@@ -149,8 +153,12 @@ public struct RTSPTransformControlPanel: View {
 					// Match the fixed tabs' height so switching doesn't resize
 					// the panel; falls back to the view's natural size until a
 					// fixed tab has been measured.
-					ONVIFCameraListView(currentURL: cameraURL)
-						.frame(height: fixedTabHeight, alignment: .top)
+					ONVIFCameraListView(
+						currentURL: cameraURL,
+						username: $onvifUsername,
+						password: $onvifPassword
+					)
+					.frame(height: fixedTabHeight, alignment: .top)
 				}
 			}
 		}
