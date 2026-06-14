@@ -28,11 +28,18 @@ func redactCredentials(in text: String) -> String {
 	)
 }
 
-enum FFmpegLog {
+public enum FFmpegLog {
+	// FFmpeg emits a high volume of log lines on RTSP streams; left running,
+	// it can flood os_log and make Xcode's console unresponsive. Logging is
+	// therefore off by default — set `FFmpegLog.isEnabled = true` to forward
+	// FFmpeg output to os_log while debugging.
+	public nonisolated(unsafe) static var isEnabled = false
+
 	// Reading `install` runs the closure exactly once (Swift guarantees
 	// thread-safe one-shot initialisation for static stored properties).
 	static let install: Void = {
 		av_log_set_callback { ptr, level, fmt, varlist in
+			guard isEnabled else { return }
 			guard let fmt, let varlist else { return }
 			var buffer = [CChar](repeating: 0, count: 1024)
 			var printPrefix: Int32 = 1

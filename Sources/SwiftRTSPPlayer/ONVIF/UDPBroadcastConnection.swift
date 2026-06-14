@@ -10,7 +10,19 @@ import Darwin
 import Foundation
 import OSLog
 
-private let log = Logger(subsystem: "SwiftRTSPPlayer", category: "udp_broadcast")
+private let osLog = Logger(subsystem: "SwiftRTSPPlayer", category: "udp_broadcast")
+
+/// Forwards to os_log only when `UDPBroadcastConnection.isLoggingEnabled` is on.
+/// The message is built lazily so disabled logging costs nothing.
+private struct GatedLog {
+	func debug(_ message: @autoclosure () -> String) {
+		guard UDPBroadcastConnection.isLoggingEnabled else { return }
+		let text = message()
+		osLog.debug("\(text)")
+	}
+}
+
+private let log = GatedLog()
 
 /// A UDP socket that sends datagrams to broadcast/multicast addresses and
 /// listens for unicast replies on the same (ephemeral) local port. Used for
@@ -19,6 +31,11 @@ private let log = Logger(subsystem: "SwiftRTSPPlayer", category: "udp_broadcast"
 /// main actor.
 @MainActor
 final class UDPBroadcastConnection {
+
+	/// Verbose UDP socket logging is off by default — ONVIF WS-Discovery emits a
+	/// per-datagram stream of log lines that can flood os_log and make Xcode's
+	/// console unresponsive. Set this to `true` while debugging.
+	public nonisolated(unsafe) static var isLoggingEnabled = false
 
 	enum ConnectionError: Error {
 		case createSocketFailed
@@ -197,8 +214,8 @@ final class UDPBroadcastConnection {
 		}
 
 		log.debug("""
-		UDP connection received \(bytesRead, privacy: .public) bytes from \
-		\(endpoint.host):\(endpoint.port, privacy: .public)
+		UDP connection received \(bytesRead) bytes from \
+		\(endpoint.host):\(endpoint.port)
 		""")
 		handler(endpoint.host, endpoint.port, Data(response[0..<bytesRead]))
 	}
