@@ -23,7 +23,14 @@ public struct ONVIFCredentials: Sendable {
 public enum ONVIFError: Error, LocalizedError {
 	/// The HTTP request failed or returned a non-XML payload.
 	case invalidResponse
-	/// The camera answered with a SOAP fault (wrong credentials, mostly).
+	/// The credentials were rejected (`ter:NotAuthorized`). Distinct from
+	/// `accountLocked` so the caller can avoid retrying into a lockout.
+	case notAuthorized
+	/// The camera locked the account after too many failed logins. Common on
+	/// Dahua-based cameras (e.g. Lorex); the lock clears after a cooldown or a
+	/// reboot, so retrying immediately only re-arms it.
+	case accountLocked
+	/// The camera answered with some other SOAP fault.
 	case soapFault(reason: String)
 	/// The camera returned an HTTP error status.
 	case requestFailed(statusCode: Int)
@@ -32,10 +39,28 @@ public enum ONVIFError: Error, LocalizedError {
 	/// `GetStreamUri` returned a string that is not a valid URL.
 	case malformedStreamURL
 
+	/// Classify a parsed SOAP fault into the most specific error case.
+	init(fault: ONVIFDiscoveryService.SOAPFault) {
+		// Dahua/Lorex firmware reports the lockout as a `NotAuthorized` fault
+		// whose reason mentions the account being locked — detect it by the
+		// reason text since the subcode alone can't tell it apart.
+		if fault.reason.range(of: "lock", options: .caseInsensitive) != nil {
+			self = .accountLocked
+		} else if fault.subcode == "NotAuthorized" {
+			self = .notAuthorized
+		} else {
+			self = .soapFault(reason: fault.reason)
+		}
+	}
+
 	public var errorDescription: String? {
 		switch self {
 		case .invalidResponse:
 			return String(localized: "error.onvif.invalidResponse", bundle: .module)
+		case .notAuthorized:
+			return String(localized: "error.onvif.notAuthorized", bundle: .module)
+		case .accountLocked:
+			return String(localized: "error.onvif.accountLocked", bundle: .module)
 		case .soapFault(let reason):
 			return reason.isEmpty
 				? String(localized: "error.onvif.fault", bundle: .module)
@@ -178,10 +203,10 @@ public enum ONVIFDiscoveryService {
 		let (data, response) = try await session.data(for: request)
 		guard let httpResponse = response as? HTTPURLResponse else { throw ONVIFError.invalidResponse }
 		guard (200..<300).contains(httpResponse.statusCode) else {
-			// Cameras report bad credentials as a SOAP fault with a 400/500
-			// status — surface the fault reason when there is one.
-			if let reason = faultReason(fromResponse: data) {
-				throw ONVIFError.soapFault(reason: reason)
+			// Cameras report bad credentials (and lockouts) as a SOAP fault with
+			// a 400/500 status — classify it when there is one.
+			if let fault = fault(fromResponse: data) {
+				throw ONVIFError(fault: fault)
 			}
 			throw ONVIFError.requestFailed(statusCode: httpResponse.statusCode)
 		}
@@ -250,12 +275,30 @@ public enum ONVIFDiscoveryService {
 		return URL(string: uri)
 	}
 
-	/// Extract the human-readable reason of a SOAP fault, if the payload is one.
-	static func faultReason(fromResponse data: Data) -> String? {
+	/// A parsed SOAP 1.2 fault: its subcode local name (e.g. `NotAuthorized`)
+	/// and human-readable reason text.
+	struct SOAPFault {
+		let subcode: String
+		let reason: String
+	}
+
+	/// Parse a SOAP fault out of a response payload, if it is one.
+	static func fault(fromResponse data: Data) -> SOAPFault? {
 		guard let root = ONVIFXMLNode.parse(data),
 					let fault = root["Body"]?["Fault"] else { return nil }
 		let reason = fault.descendants(named: "Text").first?.text ?? ""
-		return reason.isEmpty ? "" : reason
+		// SOAP 1.2 nests the application subcode under Code/Subcode/Value;
+		// fall back to the top-level Code/Value otherwise. The value carries a
+		// namespace prefix ("ter:NotAuthorized") — keep only the local part.
+		let codeValue = fault["Code"]?["Subcode"]?["Value"]?.text
+			?? fault["Code"]?["Value"]?.text ?? ""
+		let subcode = codeValue.split(separator: ":").last.map(String.init) ?? codeValue
+		return SOAPFault(subcode: subcode, reason: reason)
+	}
+
+	/// Extract the human-readable reason of a SOAP fault, if the payload is one.
+	static func faultReason(fromResponse data: Data) -> String? {
+		fault(fromResponse: data)?.reason
 	}
 
 	/// Embed the credentials in the URL's userinfo (`rtsp://user:pass@host/…`).

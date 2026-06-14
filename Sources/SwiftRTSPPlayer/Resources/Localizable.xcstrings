@@ -145,6 +145,24 @@
         }
       }
     },
+    "error.onvif.accountLocked" : {
+      "comment" : "Error shown when the camera locked the account after too many failed logins (common on Dahua/Lorex cameras).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The camera account is locked after too many failed logins. Wait a few minutes or reboot the camera, then try again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Le compte de la caméra est verrouillé après trop d’échecs de connexion. Patientez quelques minutes ou redémarrez la caméra, puis réessayez."
+          }
+        }
+      }
+    },
     "error.onvif.fault" : {
       "comment" : "Error shown when the camera answers an ONVIF request with a SOAP fault without a reason text.",
       "extractionState" : "manual",
@@ -213,6 +231,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "La caméra n’expose aucun profil média"
+          }
+        }
+      }
+    },
+    "error.onvif.notAuthorized" : {
+      "comment" : "Error shown when the camera rejects the credentials (ter:NotAuthorized).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Authentication failed — check the username and password. Repeated failures may lock the camera account."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Échec de l’authentification — vérifiez le nom d’utilisateur et le mot de passe. Des échecs répétés peuvent verrouiller le compte de la caméra."
           }
         }
       }

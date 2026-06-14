@@ -212,6 +212,53 @@ struct ONVIFParsingTests {
 		#expect(ONVIFDiscoveryService.faultReason(fromResponse: Data(noFault.utf8)) == nil)
 	}
 
+	@Test("NotAuthorized fault maps to .notAuthorized")
+	func notAuthorizedFault() {
+		let xml = """
+		<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:ter="http://www.onvif.org/ver10/error">
+			<s:Body>
+				<s:Fault>
+					<s:Code><s:Value>s:Sender</s:Value><s:Subcode><s:Value>ter:NotAuthorized</s:Value></s:Subcode></s:Code>
+					<s:Reason><s:Text xml:lang="en">Sender not authorized</s:Text></s:Reason>
+				</s:Fault>
+			</s:Body>
+		</s:Envelope>
+		"""
+		guard let fault = ONVIFDiscoveryService.fault(fromResponse: Data(xml.utf8)) else {
+			Issue.record("expected a fault")
+			return
+		}
+		#expect(fault.subcode == "NotAuthorized")
+		guard case .notAuthorized = ONVIFError(fault: fault) else {
+			Issue.record("expected .notAuthorized")
+			return
+		}
+	}
+
+	@Test("Locked-account fault maps to .accountLocked")
+	func accountLockedFault() {
+		// Lorex/Dahua report the lockout as a NotAuthorized fault whose reason
+		// mentions the account being locked.
+		let xml = """
+		<s:Envelope xmlns:s="http://www.w3.org/2003/05/soap-envelope" xmlns:ter="http://www.onvif.org/ver10/error">
+			<s:Body>
+				<s:Fault>
+					<s:Code><s:Value>s:Sender</s:Value><s:Subcode><s:Value>ter:NotAuthorized</s:Value></s:Subcode></s:Code>
+					<s:Reason><s:Text xml:lang="en">This Account Has Been Locked. The Unlock Time is 0 Second(s).</s:Text></s:Reason>
+				</s:Fault>
+			</s:Body>
+		</s:Envelope>
+		"""
+		guard let fault = ONVIFDiscoveryService.fault(fromResponse: Data(xml.utf8)) else {
+			Issue.record("expected a fault")
+			return
+		}
+		guard case .accountLocked = ONVIFError(fault: fault) else {
+			Issue.record("expected .accountLocked")
+			return
+		}
+	}
+
 	@Test("Credentials are injected into the stream URL")
 	func credentialInjection() {
 		let url = URL(string: "rtsp://192.168.1.108:554/stream?channel=1")!
