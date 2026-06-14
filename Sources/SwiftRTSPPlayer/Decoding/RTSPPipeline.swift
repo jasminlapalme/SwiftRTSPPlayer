@@ -39,11 +39,7 @@ public actor RTSPPipeline {
 						switch event {
 
 						case .format(let paramsSet):
-							try await decoder.configure(
-								sps: paramsSet.sps,
-								pps: paramsSet.pps,
-								nalUnitHeaderLength: paramsSet.nalUnitHeaderLength
-							)
+							try await decoder.configure(parameterSet: paramsSet)
 
 						case .frame(let videoFrame):
 							await decoder.decode(

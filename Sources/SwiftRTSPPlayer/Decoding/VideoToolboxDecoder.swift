@@ -35,6 +35,7 @@ actor VideoToolboxDecoder {
 	private var session: VTDecompressionSession?
 	private var formatDesc: CMFormatDescription?
 	private var nalUnitHeaderLength = 4
+	private var codec: VideoCodec = .h264
 	private var hasReceivedIDR = false
 
 	private var continuation: AsyncStream<DecodedFrame>.Continuation?
@@ -51,11 +52,12 @@ actor VideoToolboxDecoder {
 
 	// MARK: - Configure
 
-	func configure(sps: Data, pps: Data, nalUnitHeaderLength: Int = 4) throws {
+	func configure(parameterSet: ParameterSet) throws {
 		invalidate()
-		self.nalUnitHeaderLength = nalUnitHeaderLength
+		self.nalUnitHeaderLength = parameterSet.nalUnitHeaderLength
+		self.codec = parameterSet.codec
 
-		let formatDescOut = try makeFormatDescription(sps: sps, pps: pps, nalUnitHeaderLength: nalUnitHeaderLength)
+		let formatDescOut = try makeFormatDescription(parameterSet: parameterSet)
 		self.formatDesc = formatDescOut
 
 		let refcon = CallbackRefcon(self)
@@ -68,37 +70,50 @@ actor VideoToolboxDecoder {
 		self.session = try makeDecompressionSession(
 			formatDesc: formatDescOut,
 			callback: &callback,
-			sps: sps,
-			pps: pps,
-			nalUnitHeaderLength: nalUnitHeaderLength
+			parameterSet: parameterSet
 		)
 	}
 
-	private func makeFormatDescription(
-		sps: Data,
-		pps: Data,
-		nalUnitHeaderLength: Int
-	) throws -> CMFormatDescription {
+	private func makeFormatDescription(parameterSet: ParameterSet) throws -> CMFormatDescription {
+		// VideoToolbox takes the parameter sets as an array of (pointer, size).
+		// H.264 supplies SPS + PPS; HEVC prepends a VPS.
+		let sets: [Data]
+		switch parameterSet.codec {
+		case .h264:
+			sets = [parameterSet.sps, parameterSet.pps]
+		case .hevc:
+			guard let vps = parameterSet.vps else {
+				throw NSError(
+					domain: "Decoder",
+					code: Int(kCMFormatDescriptionError_InvalidParameter),
+					userInfo: [
+						NSLocalizedDescriptionKey: String(localized: "error.cannotCreateFormatDescription", bundle: .module)
+					]
+				)
+			}
+			sets = [vps, parameterSet.sps, parameterSet.pps]
+		}
+
 		var formatDescOut: CMFormatDescription?
-		let status: OSStatus = sps.withUnsafeBytes { spsBytes in
-			pps.withUnsafeBytes { ppsBytes in
-				guard let spsBase = spsBytes.baseAddress,
-							let ppsBase = ppsBytes.baseAddress else {
-					return kCMFormatDescriptionError_InvalidParameter
-				}
-
-				var parameterSetPointers: [UnsafePointer<UInt8>] = [
-					spsBase.assumingMemoryBound(to: UInt8.self),
-					ppsBase.assumingMemoryBound(to: UInt8.self)
-				]
-				var parameterSetSizes: [Int] = [sps.count, pps.count]
-
+		let status = withParameterSetPointers(sets) { pointers, sizes in
+			switch parameterSet.codec {
+			case .h264:
 				return CMVideoFormatDescriptionCreateFromH264ParameterSets(
 					allocator: kCFAllocatorDefault,
-					parameterSetCount: 2,
-					parameterSetPointers: &parameterSetPointers,
-					parameterSetSizes: &parameterSetSizes,
-					nalUnitHeaderLength: Int32(nalUnitHeaderLength),
+					parameterSetCount: pointers.count,
+					parameterSetPointers: pointers.baseAddress!,
+					parameterSetSizes: sizes.baseAddress!,
+					nalUnitHeaderLength: Int32(parameterSet.nalUnitHeaderLength),
+					formatDescriptionOut: &formatDescOut
+				)
+			case .hevc:
+				return CMVideoFormatDescriptionCreateFromHEVCParameterSets(
+					allocator: kCFAllocatorDefault,
+					parameterSetCount: pointers.count,
+					parameterSetPointers: pointers.baseAddress!,
+					parameterSetSizes: sizes.baseAddress!,
+					nalUnitHeaderLength: Int32(parameterSet.nalUnitHeaderLength),
+					extensions: nil,
 					formatDescriptionOut: &formatDescOut
 				)
 			}
@@ -120,9 +135,7 @@ actor VideoToolboxDecoder {
 	private func makeDecompressionSession(
 		formatDesc: CMFormatDescription,
 		callback: inout VTDecompressionOutputCallbackRecord,
-		sps: Data,
-		pps: Data,
-		nalUnitHeaderLength: Int
+		parameterSet: ParameterSet
 	) throws -> VTDecompressionSession {
 		#if targetEnvironment(simulator)
 		let decoderSpecification: [CFString: Any] = [:]
@@ -159,9 +172,9 @@ actor VideoToolboxDecoder {
 					NSLocalizedDescriptionKey: String(localized: "error.cannotCreateDecompressionSession", bundle: .module),
 					"width": Int(dimensions.width),
 					"height": Int(dimensions.height),
-					"nalUnitHeaderLength": nalUnitHeaderLength,
-					"spsLength": sps.count,
-					"ppsLength": pps.count
+					"nalUnitHeaderLength": parameterSet.nalUnitHeaderLength,
+					"spsLength": parameterSet.sps.count,
+					"ppsLength": parameterSet.pps.count
 				]
 			)
 		}
@@ -285,6 +298,7 @@ actor VideoToolboxDecoder {
 		}
 		formatDesc = nil
 		nalUnitHeaderLength = 4
+		codec = .h264
 		hasReceivedIDR = false
 		ptsQueue.removeAll()
 	}
@@ -322,6 +336,38 @@ actor VideoToolboxDecoder {
 
 }
 
+// MARK: - Parameter set pinning
+
+private extension VideoToolboxDecoder {
+
+	// Recursively pins each parameter set's bytes so all base addresses stay
+	// valid for the single CM*FormatDescriptionCreate call — `withUnsafeBytes`
+	// guarantees validity only within its own closure, so they must nest.
+	func withParameterSetPointers(
+		_ sets: [Data],
+		_ body: (UnsafeBufferPointer<UnsafePointer<UInt8>>, UnsafeBufferPointer<Int>) -> OSStatus
+	) -> OSStatus {
+		var pointers: [UnsafePointer<UInt8>] = []
+		var sizes: [Int] = []
+		func recurse(_ index: Int) -> OSStatus {
+			guard index < sets.count else {
+				return pointers.withUnsafeBufferPointer { ptrBuf in
+					sizes.withUnsafeBufferPointer { sizeBuf in
+						body(ptrBuf, sizeBuf)
+					}
+				}
+			}
+			return sets[index].withUnsafeBytes { raw in
+				guard let base = raw.baseAddress else { return kCMFormatDescriptionError_InvalidParameter }
+				pointers.append(base.assumingMemoryBound(to: UInt8.self))
+				sizes.append(sets[index].count)
+				return recurse(index + 1)
+			}
+		}
+		return recurse(0)
+	}
+}
+
 // MARK: - NALU filtering
 
 private extension VideoToolboxDecoder {
@@ -344,28 +390,54 @@ private extension VideoToolboxDecoder {
 			offset += Int(length)
 
 			guard let header = nalu.first else { continue }
-			let type = header & 0x1F
 
-			switch type {
-			case 7, 8, 9, 12:
-				continue
-
-			case 5:
+			switch classify(naluHeader: header) {
+			case .keyframe:
 				hasReceivedIDR = true
 				appendNALULength(nalu.count, to: &filtered)
 				filtered.append(contentsOf: nalu)
 
-			case 1:
+			case .slice:
+				// Drop leading P-frames until the first keyframe is seen — feeding
+				// VideoToolbox inter-coded frames with no reference corrupts output.
 				guard hasReceivedIDR else { continue }
 				appendNALULength(nalu.count, to: &filtered)
 				filtered.append(contentsOf: nalu)
 
-			default:
+			case .drop:
 				continue
 			}
 		}
 
 		return filtered.isEmpty ? nil : filtered
+	}
+
+	private enum NALUClass {
+		case keyframe  // IDR / IRAP — resets the reference state
+		case slice     // inter-coded picture slice
+		case drop      // parameter set, delimiter, SEI, filler, etc.
+	}
+
+	private func classify(naluHeader header: UInt8) -> NALUClass {
+		switch codec {
+		case .h264:
+			switch header & 0x1F {
+			case 5: return .keyframe          // IDR slice
+			case 1: return .slice             // non-IDR slice
+			default: return .drop             // SPS(7)/PPS(8)/AUD(9)/filler(12)/…
+			}
+		case .hevc:
+			let type = (header >> 1) & 0x3F
+			switch type {
+			// IRAP pictures: BLA (16-18), IDR (19-20), CRA (21).
+			case 16...23: return .keyframe
+			// Remaining VCL NAL units (0-15, 24-31) are inter-coded slices.
+			case 0...31: return .slice
+			// 32+ are non-VCL: VPS/SPS/PPS/AUD/EOS/EOB/FD/SEI — already in the
+			// format description or irrelevant to the decoder.
+			default: return .drop
+			}
+		}
 	}
 
 	func appendNALULength(_ length: Int, to data: inout Data) {

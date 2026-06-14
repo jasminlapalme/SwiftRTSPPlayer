@@ -196,10 +196,10 @@ final class UDPBroadcastConnection {
 			return
 		}
 
-//		log.debug("""
-//		UDP connection received \(bytesRead, privacy: .public) bytes from \
-//		\(endpoint.host):\(endpoint.port, privacy: .public)
-//		""")
+		log.debug("""
+		UDP connection received \(bytesRead, privacy: .public) bytes from \
+		\(endpoint.host):\(endpoint.port, privacy: .public)
+		""")
 		handler(endpoint.host, endpoint.port, Data(response[0..<bytesRead]))
 	}
 

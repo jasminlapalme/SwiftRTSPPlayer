@@ -172,3 +172,90 @@ struct ExtractParameterSetsFromAVCCTests {
 		#expect(extractParameterSetsFromAVCC(Data(bytes)) == nil)
 	}
 }
+
+// MARK: - extractParameterSetsFromHVCC
+
+@Suite("extractParameterSetsFromHVCC")
+struct ExtractParameterSetsFromHVCCTests {
+
+	// Builds one hvcC NAL-unit array: (type byte, numNalus, then each [size, payload]).
+	private func array(type: UInt8, nalus: [[UInt8]]) -> [UInt8] {
+		var bytes: [UInt8] = [type, UInt8(nalus.count >> 8), UInt8(nalus.count & 0xFF)]
+		for nalu in nalus {
+			bytes += [UInt8(nalu.count >> 8), UInt8(nalu.count & 0xFF)] + nalu
+		}
+		return bytes
+	}
+
+	// 22-byte fixed header with configurationVersion=1 and lengthSizeMinusOne=3.
+	private var header: [UInt8] {
+		var bytes = [UInt8](repeating: 0, count: 22)
+		bytes[0] = 0x01   // configurationVersion
+		bytes[21] = 0xFF  // low two bits = lengthSizeMinusOne (3 → 4-byte lengths)
+		return bytes
+	}
+
+	@Test("Empty data returns nil")
+	func emptyData() {
+		#expect(extractParameterSetsFromHVCC(Data()) == nil)
+	}
+
+	@Test("Wrong configurationVersion (≠ 1) returns nil")
+	func wrongConfigurationVersion() {
+		var bytes = header
+		bytes[0] = 0x02
+		bytes.append(0x00) // numOfArrays
+		#expect(extractParameterSetsFromHVCC(Data(bytes)) == nil)
+	}
+
+	@Test("Missing VPS array returns nil")
+	func missingVPS() {
+		let sps: [UInt8] = [0x42, 0x01, 0x01]
+		let pps: [UInt8] = [0x44, 0x01]
+		var bytes = header
+		bytes.append(0x02) // numOfArrays — SPS and PPS only
+		bytes += array(type: 33, nalus: [sps])
+		bytes += array(type: 34, nalus: [pps])
+		#expect(extractParameterSetsFromHVCC(Data(bytes)) == nil)
+	}
+
+	@Test("Truncated NAL length runs off the end → nil")
+	func truncatedNalLength() {
+		var bytes = header
+		bytes.append(0x01) // numOfArrays
+		// VPS array claiming a 100-byte NAL with no payload.
+		bytes += [32, 0x00, 0x01, 0x00, 0x64]
+		#expect(extractParameterSetsFromHVCC(Data(bytes)) == nil)
+	}
+
+	@Test("Zero-length NAL is rejected")
+	func zeroLengthNalRejected() {
+		var bytes = header
+		bytes.append(0x01)
+		bytes += [32, 0x00, 0x01, 0x00, 0x00] // VPS NAL size = 0
+		#expect(extractParameterSetsFromHVCC(Data(bytes)) == nil)
+	}
+
+	@Test("Valid hvcC config returns VPS, SPS, PPS, and length size")
+	func validHvccConfig() {
+		// HEVC NAL headers: VPS(32) → 0x40, SPS(33) → 0x42, PPS(34) → 0x44.
+		let vps: [UInt8] = [0x40, 0x01, 0x0C]
+		let sps: [UInt8] = [0x42, 0x01, 0x01, 0x60]
+		let pps: [UInt8] = [0x44, 0x01, 0xC0]
+		var bytes = header
+		bytes.append(0x03) // numOfArrays
+		bytes += array(type: 32, nalus: [vps])
+		bytes += array(type: 33, nalus: [sps])
+		bytes += array(type: 34, nalus: [pps])
+
+		guard let result = extractParameterSetsFromHVCC(Data(bytes)) else {
+			Issue.record("expected non-nil result for valid hvcC bytes")
+			return
+		}
+		#expect(result.codec == .hevc)
+		#expect(result.vps == Data(vps))
+		#expect(result.sps == Data(sps))
+		#expect(result.pps == Data(pps))
+		#expect(result.nalUnitHeaderLength == 4)
+	}
+}

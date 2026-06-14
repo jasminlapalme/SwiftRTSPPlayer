@@ -127,20 +127,20 @@
         }
       }
     },
-    "error.noH264Stream" : {
-      "comment" : "Error message when the RTSP source contains no H.264 video stream.",
+    "error.noVideoStream" : {
+      "comment" : "Error message when the RTSP source contains no supported (H.264 or H.265/HEVC) video stream.",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "No H.264 stream"
+            "value" : "No supported video stream"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucun flux H.264"
+            "value" : "Aucun flux vidéo pris en charge"
           }
         }
       }

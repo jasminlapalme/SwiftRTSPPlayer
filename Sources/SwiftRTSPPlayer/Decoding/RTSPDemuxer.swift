@@ -15,10 +15,26 @@ public struct VideoFrame: Sendable {
 	public let dts: CMTime
 }
 
+public enum VideoCodec: Sendable {
+	case h264
+	case hevc
+}
+
 public struct ParameterSet: Sendable {
+	public let codec: VideoCodec
+	// HEVC carries a Video Parameter Set in addition to SPS/PPS; H.264 does not.
+	public let vps: Data?
 	public let sps: Data
 	public let pps: Data
 	public let nalUnitHeaderLength: Int
+
+	public init(codec: VideoCodec, vps: Data? = nil, sps: Data, pps: Data, nalUnitHeaderLength: Int) {
+		self.codec = codec
+		self.vps = vps
+		self.sps = sps
+		self.pps = pps
+		self.nalUnitHeaderLength = nalUnitHeaderLength
+	}
 }
 
 public enum RTSPEvent: Sendable {
@@ -92,14 +108,14 @@ actor RTSPDemuxer {
 				userInfo: [NSLocalizedDescriptionKey: String(localized: "error.cannotFindStreamInfo", bundle: .module)]
 			)
 		}
-		guard let stream = findH264Stream(formatCtx: formatCtx!) else {
+		guard let stream = findVideoStream(formatCtx: formatCtx!) else {
 			throw NSError(
 				domain: "RTSP",
 				code: -3,
-				userInfo: [NSLocalizedDescriptionKey: String(localized: "error.noH264Stream", bundle: .module)]
+				userInfo: [NSLocalizedDescriptionKey: String(localized: "error.noVideoStream", bundle: .module)]
 			)
 		}
-		if let paramsSet = extractParameterSets(formatCtx: formatCtx!, streamIndex: stream.index) {
+		if let paramsSet = extractParameterSets(formatCtx: formatCtx!, stream: stream) {
 			emit(.format(paramsSet))
 		}
 		var pkt: UnsafeMutablePointer<AVPacket>? = av_packet_alloc()
@@ -148,14 +164,20 @@ actor RTSPDemuxer {
 		av_dict_set(&opts, "tls_verify", "1", 0)
 	}
 
-	private nonisolated func findH264Stream(
+	private nonisolated func findVideoStream(
 		formatCtx: UnsafeMutablePointer<AVFormatContext>
-	) -> (index: Int32, timeBase: AVRational)? {
+	) -> VideoStream? {
 		let nbStreams = Int(formatCtx.pointee.nb_streams)
 		for idxStream in 0..<nbStreams {
 			let stream = formatCtx.pointee.streams[idxStream]!
-			if stream.pointee.codecpar.pointee.codec_id == AV_CODEC_ID_H264 {
-				return (Int32(idxStream), stream.pointee.time_base)
+			let codec: VideoCodec?
+			switch stream.pointee.codecpar.pointee.codec_id {
+			case AV_CODEC_ID_H264: codec = .h264
+			case AV_CODEC_ID_HEVC: codec = .hevc
+			default: codec = nil
+			}
+			if let codec {
+				return VideoStream(index: Int32(idxStream), timeBase: stream.pointee.time_base, codec: codec)
 			}
 		}
 		return nil
@@ -164,7 +186,7 @@ actor RTSPDemuxer {
 	private nonisolated func runReadLoop(
 		formatCtx: UnsafeMutablePointer<AVFormatContext>?,
 		pkt: UnsafeMutablePointer<AVPacket>?,
-		stream: (index: Int32, timeBase: AVRational),
+		stream: VideoStream,
 		watchdog: DemuxWatchdog,
 		emit: (RTSPEvent) -> Void
 	) {
@@ -228,18 +250,27 @@ actor RTSPDemuxer {
 		}
 		emit(.frame(VideoFrame(data: data, pts: pts, dts: dts)))
 	}
-	// MARK: - SPS/PPS
+	// MARK: - Parameter sets
 	private nonisolated func extractParameterSets(
 		formatCtx: UnsafeMutablePointer<AVFormatContext>,
-		streamIndex: Int32
+		stream: VideoStream
 	) -> ParameterSet? {
-		guard let stream = formatCtx.pointee.streams[Int(streamIndex)],
-					let extradata = stream.pointee.codecpar.pointee.extradata
+		guard let avStream = formatCtx.pointee.streams[Int(stream.index)],
+					let extradata = avStream.pointee.codecpar.pointee.extradata
 		else { return nil }
-		let size = Int(stream.pointee.codecpar.pointee.extradata_size)
+		let size = Int(avStream.pointee.codecpar.pointee.extradata_size)
 		guard size > 4 else { return nil }
 		let data = Data(bytes: extradata, count: size)
 
+		switch stream.codec {
+		case .h264:
+			return extractH264ParameterSets(data)
+		case .hevc:
+			return extractHEVCParameterSets(data)
+		}
+	}
+
+	private nonisolated func extractH264ParameterSets(_ data: Data) -> ParameterSet? {
 		if let parameterSets = extractParameterSetsFromAVCC(data) {
 			return parameterSets
 		}
@@ -251,7 +282,25 @@ actor RTSPDemuxer {
 			let sps = nalus.first(where: { $0.first.map { $0 & 0x1F == 7 } ?? false }),
 			let pps = nalus.first(where: { $0.first.map { $0 & 0x1F == 8 } ?? false })
 		else { return nil }
-		return ParameterSet(sps: sps, pps: pps, nalUnitHeaderLength: 4)
+		return ParameterSet(codec: .h264, sps: sps, pps: pps, nalUnitHeaderLength: 4)
+	}
+
+	private nonisolated func extractHEVCParameterSets(_ data: Data) -> ParameterSet? {
+		if let parameterSets = extractParameterSetsFromHVCC(data) {
+			return parameterSets
+		}
+
+		// Annex-B fallback: HEVC NALU type is bits 1..6 of the first header byte.
+		let nalus = annexBNALURanges(in: data).map { Data(data[$0]) }
+		func nalu(ofType wanted: UInt8) -> Data? {
+			nalus.first { $0.first.map { ($0 >> 1) & 0x3F == wanted } ?? false }
+		}
+		guard
+			let vps = nalu(ofType: 32),
+			let sps = nalu(ofType: 33),
+			let pps = nalu(ofType: 34)
+		else { return nil }
+		return ParameterSet(codec: .hevc, vps: vps, sps: sps, pps: pps, nalUnitHeaderLength: 4)
 	}
 
 	// MARK: - Helpers
@@ -325,7 +374,45 @@ func extractParameterSetsFromAVCC(_ data: Data) -> ParameterSet? {
 	}
 
 	guard let sps, let pps else { return nil }
-	return ParameterSet(sps: sps, pps: pps, nalUnitHeaderLength: nalUnitHeaderLength)
+	return ParameterSet(codec: .h264, sps: sps, pps: pps, nalUnitHeaderLength: nalUnitHeaderLength)
+}
+
+// Parses HEVC `hvcC` extradata into its VPS/SPS/PPS parameter sets. The layout
+// is a fixed 22-byte header followed by `numOfArrays` arrays, each grouping the
+// NAL units of one type. Like the AVCC parser, every offset advance is bounds
+// checked because the bytes are attacker-controlled. `internal` for testability.
+func extractParameterSetsFromHVCC(_ data: Data) -> ParameterSet? {
+	// 22-byte fixed header + at least one array descriptor.
+	guard data.count > 23, data[data.startIndex] == 1 else { return nil }
+
+	// Byte 21 holds `lengthSizeMinusOne` in its low two bits → 1...4.
+	let nalUnitHeaderLength = Int(data[data.startIndex + 21] & 0x03) + 1
+	let numArrays = Int(data[data.startIndex + 22])
+	var offset = data.startIndex + 23
+
+	var byType: [UInt8: Data] = [:]
+	for _ in 0..<numArrays {
+		guard offset + 3 <= data.endIndex else { return nil }
+		let nalType = data[offset] & 0x3F
+		let numNalus = Int(data[offset + 1]) << 8 | Int(data[offset + 2])
+		offset += 3
+
+		for _ in 0..<numNalus {
+			guard offset + 2 <= data.endIndex else { return nil }
+			let size = Int(data[offset]) << 8 | Int(data[offset + 1])
+			offset += 2
+			guard size > 0, offset + size <= data.endIndex else { return nil }
+			// Keep the first NAL unit of each type — that's all VideoToolbox needs.
+			if byType[nalType] == nil {
+				byType[nalType] = Data(data[offset..<offset + size])
+			}
+			offset += size
+		}
+	}
+
+	// HEVC NAL unit types: VPS = 32, SPS = 33, PPS = 34.
+	guard let vps = byType[32], let sps = byType[33], let pps = byType[34] else { return nil }
+	return ParameterSet(codec: .hevc, vps: vps, sps: sps, pps: pps, nalUnitHeaderLength: nalUnitHeaderLength)
 }
 
 // Internal for testability — see note on `extractParameterSetsFromAVCC`.
@@ -358,6 +445,15 @@ func annexBNALURanges(in data: Data) -> [Range<Data.Index>] {
 		let end = offset + 1 < starts.count ? starts[offset + 1].startCode.lowerBound : data.endIndex
 		return start.naluStart < end ? start.naluStart..<end : nil
 	}
+}
+
+// The selected video stream's index, time base, and detected codec — passed
+// from `findVideoStream` through the read loop so per-packet handling stays
+// codec-aware without re-inspecting the format context.
+struct VideoStream {
+	let index: Int32
+	let timeBase: AVRational
+	let codec: VideoCodec
 }
 
 let AVERROR_EOF: Int32 = -541478725
