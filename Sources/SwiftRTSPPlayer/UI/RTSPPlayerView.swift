@@ -8,7 +8,7 @@
 import SwiftUI
 
 public struct RTSPPlayerView: View {
-	public let url: URL
+	public let url: URL?
 	public var rotation: CGFloat
 	public var scale: CGFloat
 	public var translation: CGPoint
@@ -17,7 +17,7 @@ public struct RTSPPlayerView: View {
 	@State private var playbackState: RTSPPlaybackState = .stopped
 
 	public init(
-		url: URL,
+		url: URL?,
 		rotation: CGFloat = 0,
 		scale: CGFloat = 1.0,
 		translation: CGPoint = .zero,
@@ -31,16 +31,22 @@ public struct RTSPPlayerView: View {
 	}
 
 	public var body: some View {
-		RTSPPlatformPlayerView(
-			url: url,
-			rotation: rotation,
-			scale: scale,
-			translation: translation,
-			fisheyeCorrection: fisheyeCorrection,
-			playbackState: $playbackState
-		)
+		Group {
+			if let url {
+				RTSPPlatformPlayerView(
+					url: url,
+					rotation: rotation,
+					scale: scale,
+					translation: translation,
+					fisheyeCorrection: fisheyeCorrection,
+					playbackState: $playbackState
+				)
+			} else {
+				Color.clear
+			}
+		}
 		.overlay {
-			RTSPPlaybackStatusOverlay(state: playbackState)
+			RTSPPlaybackStatusOverlay(state: url == nil ? .noSource : playbackState)
 		}
 	}
 }

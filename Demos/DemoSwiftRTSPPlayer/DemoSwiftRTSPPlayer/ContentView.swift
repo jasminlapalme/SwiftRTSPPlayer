@@ -25,7 +25,7 @@ struct ContentView: View {
 	@State private var rotation: CGFloat = 0
 	@State private var echelle: CGFloat = 1.0
 	@State private var translation: CGPoint = .zero
-	@State private var currentURL = urls[0]
+	@State private var currentURL: URL?
 	@State private var fisheye: FisheyeCorrection = .identity
 	@State private var showsTransformPanel: Bool = true
 

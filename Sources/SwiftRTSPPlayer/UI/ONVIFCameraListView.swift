@@ -18,7 +18,7 @@ struct ONVIFCameraListView: View {
 	/// rounds plus margin).
 	private static let cameraExpiry: TimeInterval = 10
 
-	let currentURL: Binding<URL>
+	let currentURL: Binding<URL?>
 
 	/// Owned by the parent panel so the typed credentials survive tab switches —
 	/// this view is torn down when another tab is shown.
@@ -146,7 +146,7 @@ struct ONVIFCameraListView: View {
 	/// after a successful selection here, but also when the client app was
 	/// already configured with this camera's stream before the panel opened.
 	private func isCurrent(_ camera: ONVIFCamera) -> Bool {
-		currentURL.wrappedValue.host() == camera.ipAddress
+		currentURL.wrappedValue?.host() == camera.ipAddress
 	}
 
 	// MARK: - Actions

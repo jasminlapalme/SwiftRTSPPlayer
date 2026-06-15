@@ -41,6 +41,12 @@ struct RTSPPlaybackStatusOverlay: View {
 
 	private var content: Content? {
 		switch state {
+		case .noSource:
+			return Content(
+				message: String(localized: "playback.noSource", bundle: .module),
+				systemImage: "video.slash",
+				showsProgress: false
+			)
 		case .connecting:
 			return Content(
 				message: String(localized: "playback.connecting", bundle: .module),

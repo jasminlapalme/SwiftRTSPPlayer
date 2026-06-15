@@ -361,6 +361,24 @@
         }
       }
     },
+    "playback.noSource" : {
+      "comment" : "Status overlay shown when no stream URL has been provided to the player.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No stream source specified"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aucune source de flux spécifiée"
+          }
+        }
+      }
+    },
     "playback.connecting" : {
       "comment" : "Status overlay shown while the player is establishing the initial RTSP connection.",
       "extractionState" : "manual",

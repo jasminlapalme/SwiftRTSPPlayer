@@ -52,7 +52,7 @@ public struct RTSPTransformControlPanel: View {
 
 	private let closeAction: () -> Void
 	private let configureAction: () -> Void
-	private let cameraURL: Binding<URL>?
+	private let cameraURL: Binding<URL?>?
 
 #if !os(tvOS)
 	@State var selectedField: Field?
@@ -99,7 +99,7 @@ public struct RTSPTransformControlPanel: View {
 		fisheyeSensivity: CGFloat = 0.05,
 		closeAction: @escaping () -> Void = {},
 		configureAction: @escaping () -> Void = {},
-		cameraURL: Binding<URL>? = nil
+		cameraURL: Binding<URL?>? = nil
 	) {
 		self._scale = scale
 		self._translation = translation
