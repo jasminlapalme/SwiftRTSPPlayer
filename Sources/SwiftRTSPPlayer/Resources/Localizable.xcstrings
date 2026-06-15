@@ -431,22 +431,6 @@
         }
       }
     },
-    "transform.configure" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configure"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Configurer"
-          }
-        }
-      }
-    },
     "transform.fine" : {
       "comment" : "Toggle that enables fine-grained adjustments on the transform sliders.",
       "extractionState" : "manual",

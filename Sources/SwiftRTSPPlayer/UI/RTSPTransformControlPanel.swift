@@ -51,7 +51,6 @@ public struct RTSPTransformControlPanel: View {
 	private let fisheyeSensivity: CGFloat
 
 	private let closeAction: () -> Void
-	private let configureAction: () -> Void
 	private let cameraURL: Binding<URL?>?
 
 #if !os(tvOS)
@@ -98,7 +97,6 @@ public struct RTSPTransformControlPanel: View {
 		rotationSensivity: CGFloat = 1.0,
 		fisheyeSensivity: CGFloat = 0.05,
 		closeAction: @escaping () -> Void = {},
-		configureAction: @escaping () -> Void = {},
 		cameraURL: Binding<URL?>? = nil
 	) {
 		self._scale = scale
@@ -121,7 +119,6 @@ public struct RTSPTransformControlPanel: View {
 		self.rotationSensivity = rotationSensivity
 		self.fisheyeSensivity = fisheyeSensivity
 		self.closeAction = closeAction
-		self.configureAction = configureAction
 		self.cameraURL = cameraURL
 	}
 
@@ -300,13 +297,6 @@ private extension RTSPTransformControlPanel {
 			tabPill
 			Spacer(minLength: 0)
 			Button(
-				String(localized: "transform.configure", bundle: .module),
-				systemImage: "gear",
-				action: configureAction
-			)
-			.labelStyle(.iconOnly)
-			.controlSize(.small)
-			Button(
 				String(localized: "transform.close", bundle: .module),
 				systemImage: "xmark",
 				action: closeAction
@@ -339,8 +329,7 @@ private extension RTSPTransformControlPanel {
 				)
 			}
 		}
-		.padding(.vertical, 6)
-		.padding(.horizontal, 12)
+		.padding(.vertical, 2)
 		.background(
 			Capsule(style: .continuous)
 				.fill(Color.primary.opacity(0.10))
@@ -360,8 +349,8 @@ private extension RTSPTransformControlPanel {
 					: (isActive ? Color.primary : Color.primary.opacity(0.6))
 			)
 			.frame(width: 24, height: 20)
-			.padding(.vertical, 10)
-			.padding(.horizontal, 18)
+			.padding(.vertical, 14)
+			.padding(.horizontal, 32)
 			.background(
 				Capsule(style: .continuous)
 					.fill(isFocus ? Color.white : Color.clear)
