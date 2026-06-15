@@ -32,7 +32,11 @@ struct ONVIFCameraListView: View {
 	@State private var errorMessage: String?
 
 	private var cameras: [ONVIFCamera] {
-		discovered.values.map(\.camera).sorted { ($0.name, $0.ipAddress) < ($1.name, $1.ipAddress) }
+		discovered.values.map(\.camera).sorted { cam1, cam2 in
+			let name1 = hostnames[cam1.id] ?? cam1.name
+			let name2 = hostnames[cam2.id] ?? cam2.name
+			return (name1, cam1.ipAddress) < (name2, cam2.ipAddress)
+		}
 	}
 
 	var body: some View {
