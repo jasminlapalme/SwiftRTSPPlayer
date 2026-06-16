@@ -19,6 +19,24 @@
         }
       }
     },
+    "cameras.manualURL.placeholder" : {
+      "comment" : "Placeholder for the manual RTSP URL text field.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "rtsp://…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "rtsp://…"
+          }
+        }
+      }
+    },
     "cameras.password" : {
       "comment" : "Placeholder of the camera password field in the cameras tab.",
       "extractionState" : "manual",

@@ -10,20 +10,24 @@ import SwiftUI
 /// Discovery runs continuously while the tab is visible — cameras appear as
 /// they answer probes and drop off the list once they stop answering.
 /// Tapping a camera resolves its RTSP stream URL (first media profile) and
-/// writes it to `currentURL`; the camera matching `currentURL`'s host shows
-/// a checkmark, including when the URL was set before the panel opened.
+/// writes it (with the camera's name) to `currentSelection`; the camera matching
+/// the selection's host shows a checkmark, including when it was set before the
+/// panel opened.
 struct ONVIFCameraListView: View {
 
 	/// A camera vanishing for this long is considered gone (~2 missed probe
 	/// rounds plus margin).
 	private static let cameraExpiry: TimeInterval = 10
 
-	let currentURL: Binding<URL?>
+	let currentSelection: Binding<RTSPCameraSelection?>
 
 	/// Owned by the parent panel so the typed credentials survive tab switches —
 	/// this view is torn down when another tab is shown.
 	@Binding var username: String
 	@Binding var password: String
+	/// A manually typed RTSP URL, an alternative to picking a discovered camera.
+	/// Owned by the parent for the same reason as the credentials above.
+	@Binding var manualURL: String
 	@State private var discovered: [ONVIFCamera.ID: (camera: ONVIFCamera, lastSeen: Date)] = [:]
 	@State private var hostnames: [ONVIFCamera.ID: String] = [:]
 	@State private var hostnameRequests: Set<ONVIFCamera.ID> = []
@@ -85,12 +89,33 @@ struct ONVIFCameraListView: View {
 		.padding(.horizontal)
 	}
 
+	/// Manual RTSP URL entry, for cameras that don't answer discovery probes
+	/// (different subnet, multicast blocked, non-ONVIF device). Credentials can
+	/// be embedded in the URL (`rtsp://user:pass@host/path`). Submitting a valid
+	/// URL connects to it immediately.
+	private var manualURLField: some View {
+		TextField(String(localized: "cameras.manualURL.placeholder", bundle: .module), text: $manualURL)
+			.textContentType(.URL)
+#if os(iOS) || os(visionOS)
+			.keyboardType(.URL)
+#endif
+			.onSubmit(connectToManualURL)
+#if !os(tvOS)
+			.textFieldStyle(.roundedBorder)
+#endif
+#if os(iOS) || os(visionOS)
+			.textInputAutocapitalization(.never)
+			.autocorrectionDisabled()
+#endif
+	}
+
 	private var cameraList: some View {
 		ScrollView {
 			VStack(spacing: 16) {
 				ForEach(cameras) { camera in
 					cameraRow(camera)
 				}
+				manualURLField
 			}
 			// `.card` grows and lifts the focused row (~1.1×) and the focus
 			// effect draws outside the scroll view, so reserve a margin all
@@ -150,10 +175,25 @@ struct ONVIFCameraListView: View {
 	/// after a successful selection here, but also when the client app was
 	/// already configured with this camera's stream before the panel opened.
 	private func isCurrent(_ camera: ONVIFCamera) -> Bool {
-		currentURL.wrappedValue?.host() == camera.ipAddress
+		currentSelection.wrappedValue?.url.host() == camera.ipAddress
 	}
 
 	// MARK: - Actions
+
+	/// The trimmed manual entry as a URL, or `nil` when it isn't a usable
+	/// absolute URL (empty, no scheme, or no host).
+	private var parsedManualURL: URL? {
+		let trimmed = manualURL.trimmingCharacters(in: .whitespacesAndNewlines)
+		guard let url = URL(string: trimmed), url.scheme != nil, url.host() != nil else { return nil }
+		return url
+	}
+
+	/// Play the manually entered URL, replacing any discovered selection.
+	private func connectToManualURL() {
+		guard let url = parsedManualURL else { return }
+		errorMessage = nil
+		currentSelection.wrappedValue = RTSPCameraSelection(url: url, name: url.host() ?? url.absoluteString)
+	}
 
 	/// One probe round: collect answers until the discovery stream times out,
 	/// then drop the cameras that haven't answered for a while. On failure
@@ -196,7 +236,8 @@ struct ONVIFCameraListView: View {
 			do {
 				let credentials = ONVIFCredentials(username: username, password: password)
 				let url = try await ONVIFDiscoveryService.streamURL(for: camera, credentials: credentials)
-				currentURL.wrappedValue = url
+				let name = hostnames[camera.id] ?? camera.name
+				currentSelection.wrappedValue = RTSPCameraSelection(url: url, name: name)
 			} catch {
 				// A previously selected camera keeps playing on failure, so
 				// its checkmark stays where it is.

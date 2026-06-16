@@ -90,7 +90,10 @@ private struct PreviewBackdrop: View {
 	@Previewable @State var translation: CGPoint = .zero
 	@Previewable @State var rotation: CGFloat = 0
 	@Previewable @State var fisheye: FisheyeCorrection = .identity
-	@Previewable @State var cameraURL = URL(string: "rtsp://192.168.1.30/stream")
+	@Previewable @State var cameraURL: RTSPCameraSelection? = RTSPCameraSelection(
+		url: URL(string: "rtsp://192.168.1.30/stream")!,
+		name: "192.168.1.30"
+	)
 
 	ZStack {
 		PreviewBackdrop()

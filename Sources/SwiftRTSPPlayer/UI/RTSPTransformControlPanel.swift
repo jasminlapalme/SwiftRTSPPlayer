@@ -51,7 +51,7 @@ public struct RTSPTransformControlPanel: View {
 	private let fisheyeSensivity: CGFloat
 
 	private let closeAction: () -> Void
-	private let cameraURL: Binding<URL?>?
+	private let cameraURL: Binding<RTSPCameraSelection?>?
 
 #if !os(tvOS)
 	@State var selectedField: Field?
@@ -62,6 +62,9 @@ public struct RTSPTransformControlPanel: View {
 	/// persist when the user switches tabs and comes back to Cameras.
 	@State private var onvifUsername = ""
 	@State private var onvifPassword = ""
+	/// Held here for the same reason as the credentials: the typed manual RTSP
+	/// URL persists when the user switches tabs and comes back to Cameras.
+	@State private var onvifManualURL = ""
 	/// Height of the fixed-layout tabs (slider rows + footer), used to give the
 	/// cameras tab the same height so the panel doesn't resize between tabs.
 	@State private var fixedTabHeight: CGFloat?
@@ -97,7 +100,7 @@ public struct RTSPTransformControlPanel: View {
 		rotationSensivity: CGFloat = 1.0,
 		fisheyeSensivity: CGFloat = 0.05,
 		closeAction: @escaping () -> Void = {},
-		cameraURL: Binding<URL?>? = nil
+		cameraURL: Binding<RTSPCameraSelection?>? = nil
 	) {
 		self._scale = scale
 		self._translation = translation
@@ -120,6 +123,12 @@ public struct RTSPTransformControlPanel: View {
 		self.fisheyeSensivity = fisheyeSensivity
 		self.closeAction = closeAction
 		self.cameraURL = cameraURL
+		// Seed the cameras-tab fields from the URL already in play, so reopening
+		// the panel shows the current stream and its embedded credentials.
+		let initialURL = cameraURL?.wrappedValue?.url
+		self._onvifManualURL = State(initialValue: initialURL?.absoluteString ?? "")
+		self._onvifUsername = State(initialValue: initialURL?.user() ?? "")
+		self._onvifPassword = State(initialValue: initialURL?.password() ?? "")
 	}
 
 	private var hasCameras: Bool { cameraURL != nil }
@@ -151,9 +160,10 @@ public struct RTSPTransformControlPanel: View {
 					// the panel; falls back to the view's natural size until a
 					// fixed tab has been measured.
 					ONVIFCameraListView(
-						currentURL: cameraURL,
+						currentSelection: cameraURL,
 						username: $onvifUsername,
-						password: $onvifPassword
+						password: $onvifPassword,
+						manualURL: $onvifManualURL
 					)
 					.frame(height: fixedTabHeight, alignment: .top)
 				}
