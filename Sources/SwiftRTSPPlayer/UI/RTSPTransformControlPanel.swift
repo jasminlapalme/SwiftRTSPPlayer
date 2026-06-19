@@ -216,6 +216,9 @@ public struct RTSPTransformControlPanel: View {
 		.onAppear {
 			self.focusedTab = .transform
 		}
+		// The remote's Menu/back button dismisses the panel, standing in for the
+		// close button that other platforms show in the header.
+		.onExitCommand(perform: closeAction)
 #else
 		.onChange(of: focusedField) { _, newValue in
 			if let newValue { selectedField = newValue }
@@ -335,6 +338,10 @@ private extension RTSPTransformControlPanel {
 		HStack(spacing: 10) {
 			tabPill
 			Spacer(minLength: 0)
+			// tvOS has no pointer to tap a close button, and a focusable one steals
+			// the upward swipe off the controls. There the panel is dismissed with
+			// the remote's Menu/back button instead (see `onExitCommand`).
+#if !os(tvOS)
 			Button(
 				String(localized: "transform.close", bundle: .module),
 				systemImage: "xmark",
@@ -342,6 +349,7 @@ private extension RTSPTransformControlPanel {
 			)
 			.labelStyle(.iconOnly)
 			.controlSize(.small)
+#endif
 		}
 		.padding()
 	}
