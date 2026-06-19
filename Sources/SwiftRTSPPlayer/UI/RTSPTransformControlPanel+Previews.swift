@@ -104,7 +104,11 @@ private struct PreviewBackdrop: View {
 				translation: $translation,
 				rotation: $rotation,
 				fisheyeCorrection: $fisheye,
-				cameraURL: $cameraURL
+				cameraURL: $cameraURL,
+				managedCredentials: [
+					RTSPManagedCredentials(name: "Admin", username: "admin", password: "secret"),
+					RTSPManagedCredentials(name: "Viewer", username: "viewer", password: "view")
+				]
 			)
 			.padding()
 		}

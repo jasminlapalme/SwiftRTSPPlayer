@@ -19,6 +19,42 @@
         }
       }
     },
+    "cameras.credentialSource" : {
+      "comment" : "Label of the picker that chooses which credentials the cameras tab uses.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Credentials"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Identifiants"
+          }
+        }
+      }
+    },
+    "cameras.credentialSource.manual" : {
+      "comment" : "Picker option in the cameras tab to type credentials by hand instead of using a host-supplied set.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manual"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Manuel"
+          }
+        }
+      }
+    },
     "cameras.manualURL.placeholder" : {
       "comment" : "Placeholder for the manual RTSP URL text field.",
       "extractionState" : "manual",

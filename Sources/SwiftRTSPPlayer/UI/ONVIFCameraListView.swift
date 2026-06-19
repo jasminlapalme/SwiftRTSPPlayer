@@ -28,6 +28,13 @@ struct ONVIFCameraListView: View {
 	/// A manually typed RTSP URL, an alternative to picking a discovered camera.
 	/// Owned by the parent for the same reason as the credentials above.
 	@Binding var manualURL: String
+	/// Named credential sets supplied by the host app. When non-empty the user
+	/// can pick one instead of typing credentials manually.
+	let managedCredentials: [RTSPManagedCredentials]
+	/// The chosen credential source: the `name` of a managed set, or `nil` for
+	/// the manually typed username/password. Owned by the parent so it survives
+	/// tab switches.
+	@Binding var selectedCredentialID: String?
 	@State private var discovered: [ONVIFCamera.ID: (camera: ONVIFCamera, lastSeen: Date)] = [:]
 	@State private var hostnames: [ONVIFCamera.ID: String] = [:]
 	@State private var hostnameRequests: Set<ONVIFCamera.ID> = []
@@ -68,11 +75,43 @@ struct ONVIFCameraListView: View {
 				await scanOnce()
 			}
 		}
+		// Switching credential source re-attempts the connection for whatever is
+		// already selected, so the stream picks up the new credentials at once.
+		.onChange(of: selectedCredentialID) { _, _ in
+			reconnectForCredentialChange()
+		}
 	}
 
 	// MARK: - Subviews
 
+	@ViewBuilder
 	private var credentialFields: some View {
+		VStack(alignment: .leading, spacing: 10) {
+			if !managedCredentials.isEmpty {
+				credentialSourcePicker
+			}
+			// Only the manual source exposes editable fields; a managed set
+			// carries its own username/password.
+			if isManualSource {
+				manualCredentialFields
+			}
+		}
+		.padding(.horizontal)
+	}
+
+	/// Lets the user pick a host-supplied credential set or fall back to typing
+	/// credentials by hand. Shown only when the host supplied managed sets.
+	private var credentialSourcePicker: some View {
+		Picker(String(localized: "cameras.credentialSource", bundle: .module), selection: $selectedCredentialID) {
+			ForEach(managedCredentials) { cred in
+				Text(cred.name).tag(Optional(cred.id))
+			}
+			Text(String(localized: "cameras.credentialSource.manual", bundle: .module)).tag(String?.none)
+		}
+		.pickerStyle(.menu)
+	}
+
+	private var manualCredentialFields: some View {
 		HStack(spacing: 10) {
 			TextField(String(localized: "cameras.username", bundle: .module), text: $username)
 				.textContentType(.username)
@@ -86,7 +125,6 @@ struct ONVIFCameraListView: View {
 		.textInputAutocapitalization(.never)
 		.autocorrectionDisabled()
 #endif
-		.padding(.horizontal)
 	}
 
 	/// Manual RTSP URL entry, for cameras that don't answer discovery probes
@@ -178,6 +216,59 @@ struct ONVIFCameraListView: View {
 		currentSelection.wrappedValue?.url.host() == camera.ipAddress
 	}
 
+	// MARK: - Credentials
+
+	/// The managed set the user picked, or `nil` when the manual source is
+	/// active (no managed sets, the manual entry chosen, or a stale id).
+	private var selectedManaged: RTSPManagedCredentials? {
+		guard let selectedCredentialID else { return nil }
+		return managedCredentials.first { $0.id == selectedCredentialID }
+	}
+
+	/// True when credentials come from the manual fields rather than a managed set.
+	private var isManualSource: Bool { selectedManaged == nil }
+
+	/// The credentials to authenticate ONVIF requests with — the picked managed
+	/// set, or the manually typed pair. Used only for the SOAP calls during
+	/// discovery; the stored selection carries the tagged `Credentials` instead.
+	private var effectiveCredentials: ONVIFCredentials {
+		if let managed = selectedManaged {
+			return ONVIFCredentials(username: managed.username, password: managed.password)
+		}
+		return ONVIFCredentials(username: username, password: password)
+	}
+
+	/// The credential tag to attach to a selection for the active source: the
+	/// picked managed set by name, the typed pair, or none when empty.
+	private var selectedCredentials: RTSPCameraSelection.Credentials {
+		if let managed = selectedManaged {
+			return .managed(name: managed.name)
+		}
+		if username.isEmpty && password.isEmpty {
+			return .none
+		}
+		return .manual(username: username, password: password)
+	}
+
+	/// Store a credential-free `url` as the current selection, tagged with how to
+	/// authenticate it. Any userinfo on `url` is stripped so secrets never live
+	/// in `RTSPCameraSelection`.
+	private func select(url: URL, name: String, credentials: RTSPCameraSelection.Credentials) {
+		currentSelection.wrappedValue = RTSPCameraSelection(
+			url: Self.strippingCredentials(from: url),
+			name: name,
+			credentials: credentials
+		)
+	}
+
+	/// Drop any userinfo from `url`, leaving the scheme, host, port and path.
+	private static func strippingCredentials(from url: URL) -> URL {
+		guard var components = URLComponents(url: url, resolvingAgainstBaseURL: false) else { return url }
+		components.user = nil
+		components.password = nil
+		return components.url ?? url
+	}
+
 	// MARK: - Actions
 
 	/// The trimmed manual entry as a URL, or `nil` when it isn't a usable
@@ -188,11 +279,20 @@ struct ONVIFCameraListView: View {
 		return url
 	}
 
-	/// Play the manually entered URL, replacing any discovered selection.
+	/// Play the manually entered URL, replacing any discovered selection. The URL
+	/// is stored credential-free: with a managed source the chosen set is
+	/// referenced by name; otherwise credentials embedded in the typed URL are
+	/// lifted into a `.manual` tag, falling back to the typed username/password.
 	private func connectToManualURL() {
 		guard let url = parsedManualURL else { return }
 		errorMessage = nil
-		currentSelection.wrappedValue = RTSPCameraSelection(url: url, name: url.host() ?? url.absoluteString)
+		let credentials: RTSPCameraSelection.Credentials
+		if isManualSource, let user = url.user() {
+			credentials = .manual(username: user, password: url.password() ?? "")
+		} else {
+			credentials = selectedCredentials
+		}
+		select(url: url, name: url.host() ?? url.absoluteString, credentials: credentials)
 	}
 
 	/// One probe round: collect answers until the discovery stream times out,
@@ -234,15 +334,42 @@ struct ONVIFCameraListView: View {
 		Task {
 			defer { connectingCameraID = nil }
 			do {
-				let credentials = ONVIFCredentials(username: username, password: password)
-				let url = try await ONVIFDiscoveryService.streamURL(for: camera, credentials: credentials)
+				let url = try await ONVIFDiscoveryService.streamURL(for: camera, credentials: effectiveCredentials)
 				let name = hostnames[camera.id] ?? camera.name
-				currentSelection.wrappedValue = RTSPCameraSelection(url: url, name: name)
+				select(url: url, name: name, credentials: selectedCredentials)
 			} catch {
 				// A previously selected camera keeps playing on failure, so
 				// its checkmark stays where it is.
 				errorMessage = error.localizedDescription
 			}
 		}
+	}
+}
+
+// MARK: - Credential-change reconnect
+
+private extension ONVIFCameraListView {
+
+	/// React to a credential-source change by re-attempting the current
+	/// selection's connection. A discovered camera is fully re-resolved over
+	/// ONVIF (so the panel shows progress and any auth error); anything else —
+	/// a manual URL, or a camera that has dropped off discovery — is simply
+	/// re-tagged so the host re-authenticates the same URL.
+	func reconnectForCredentialChange() {
+		guard let host = currentSelection.wrappedValue?.url.host() else { return }
+		if let camera = cameras.first(where: { $0.ipAddress == host }) {
+			connect(to: camera)
+		} else {
+			retagCurrentSelection()
+		}
+	}
+
+	/// Re-stamp the current selection with the active source's credentials,
+	/// keeping its URL and name. The host's `authenticatedURL(managedCredentials:)`
+	/// then yields a new URL, which restarts playback.
+	func retagCurrentSelection() {
+		guard let current = currentSelection.wrappedValue else { return }
+		let updated = RTSPCameraSelection(url: current.url, name: current.name, credentials: selectedCredentials)
+		if updated != current { currentSelection.wrappedValue = updated }
 	}
 }

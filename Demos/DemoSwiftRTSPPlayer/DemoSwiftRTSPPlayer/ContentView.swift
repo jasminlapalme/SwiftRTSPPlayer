@@ -21,6 +21,15 @@ let urls: [URL] = {
 	return list
 }()
 
+// Named credential sets offered in the Cameras tab. Set `RTSP_USERNAME` /
+// `RTSP_PASSWORD` in the scheme's Environment Variables to try a real camera's
+// login without embedding it in the source.
+let managedCredentials: [RTSPManagedCredentials] = {
+	let env = ProcessInfo.processInfo.environment
+	guard let username = env["RTSP_USERNAME"], let password = env["RTSP_PASSWORD"] else { return [] }
+	return [RTSPManagedCredentials(name: "Camera login", username: username, password: password)]
+}()
+
 struct ContentView: View {
 	@State private var rotation: CGFloat = 0
 	@State private var echelle: CGFloat = 1.0
@@ -29,10 +38,17 @@ struct ContentView: View {
 	@State private var fisheye: FisheyeCorrection = .identity
 	@State private var showsTransformPanel: Bool = true
 
+	/// The URL to actually play. The selection stores a credential-free URL plus
+	/// a tag describing how to authenticate it; resolving a managed reference back
+	/// to real credentials is the host's job, so secrets stay out of the selection.
+	private var playbackURL: URL? {
+		currentCamera?.authenticatedURL(managedCredentials: managedCredentials)
+	}
+
 	var body: some View {
 		VStack {
 			RTSPPlayerView(
-				url: currentCamera?.url,
+				url: playbackURL,
 				rotation: rotation,
 				scale: echelle,
 				translation: translation,
@@ -46,7 +62,8 @@ struct ContentView: View {
 						translation: $translation,
 						rotation: $rotation,
 						fisheyeCorrection: $fisheye,
-						cameraURL: $currentCamera
+						cameraURL: $currentCamera,
+						managedCredentials: managedCredentials
 					)
 					.padding()
 				}

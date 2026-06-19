@@ -52,6 +52,7 @@ public struct RTSPTransformControlPanel: View {
 
 	private let closeAction: () -> Void
 	private let cameraURL: Binding<RTSPCameraSelection?>?
+	private let managedCredentials: [RTSPManagedCredentials]
 
 #if !os(tvOS)
 	@State var selectedField: Field?
@@ -65,6 +66,10 @@ public struct RTSPTransformControlPanel: View {
 	/// Held here for the same reason as the credentials: the typed manual RTSP
 	/// URL persists when the user switches tabs and comes back to Cameras.
 	@State private var onvifManualURL = ""
+	/// Which credential source the Cameras tab uses: the `name` of a managed
+	/// credential set, or `nil` to use the manually typed username/password.
+	/// Held here so the choice survives tab switches.
+	@State private var selectedCredentialID: String?
 	/// Height of the fixed-layout tabs (slider rows + footer), used to give the
 	/// cameras tab the same height so the panel doesn't resize between tabs.
 	@State private var fixedTabHeight: CGFloat?
@@ -100,7 +105,8 @@ public struct RTSPTransformControlPanel: View {
 		rotationSensivity: CGFloat = 1.0,
 		fisheyeSensivity: CGFloat = 0.05,
 		closeAction: @escaping () -> Void = {},
-		cameraURL: Binding<RTSPCameraSelection?>? = nil
+		cameraURL: Binding<RTSPCameraSelection?>? = nil,
+		managedCredentials: [RTSPManagedCredentials] = []
 	) {
 		self._scale = scale
 		self._translation = translation
@@ -123,12 +129,33 @@ public struct RTSPTransformControlPanel: View {
 		self.fisheyeSensivity = fisheyeSensivity
 		self.closeAction = closeAction
 		self.cameraURL = cameraURL
-		// Seed the cameras-tab fields from the URL already in play, so reopening
-		// the panel shows the current stream and its embedded credentials.
-		let initialURL = cameraURL?.wrappedValue?.url
-		self._onvifManualURL = State(initialValue: initialURL?.absoluteString ?? "")
-		self._onvifUsername = State(initialValue: initialURL?.user() ?? "")
-		self._onvifPassword = State(initialValue: initialURL?.password() ?? "")
+		self.managedCredentials = managedCredentials
+		// Seed the cameras-tab fields from the stream already in play, so
+		// reopening the panel shows the current URL and restores its source. The
+		// URL is credential-free; the tagged credentials say how it authenticates.
+		let initialSelection = cameraURL?.wrappedValue
+		self._onvifManualURL = State(initialValue: initialSelection?.url.absoluteString ?? "")
+
+		var seededUsername = ""
+		var seededPassword = ""
+		// Managed by default: the first set when the host supplied any, unless the
+		// stream in play was set with a different source.
+		var seededCredentialID = managedCredentials.first?.id
+		switch initialSelection?.credentials ?? .none {
+		case .none:
+			break
+		case let .manual(username, password):
+			seededUsername = username
+			seededPassword = password
+			seededCredentialID = nil
+		case let .managed(name):
+			if managedCredentials.contains(where: { $0.id == name }) {
+				seededCredentialID = name
+			}
+		}
+		self._onvifUsername = State(initialValue: seededUsername)
+		self._onvifPassword = State(initialValue: seededPassword)
+		self._selectedCredentialID = State(initialValue: seededCredentialID)
 	}
 
 	private var hasCameras: Bool { cameraURL != nil }
@@ -163,7 +190,9 @@ public struct RTSPTransformControlPanel: View {
 						currentSelection: cameraURL,
 						username: $onvifUsername,
 						password: $onvifPassword,
-						manualURL: $onvifManualURL
+						manualURL: $onvifManualURL,
+						managedCredentials: managedCredentials,
+						selectedCredentialID: $selectedCredentialID
 					)
 					.frame(height: fixedTabHeight, alignment: .top)
 				}
