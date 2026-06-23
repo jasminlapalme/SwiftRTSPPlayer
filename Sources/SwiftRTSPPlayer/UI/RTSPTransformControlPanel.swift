@@ -254,7 +254,7 @@ private extension RTSPTransformControlPanel {
 	}
 
 	private var tabPill: some View {
-		HStack(spacing: 0) {
+		HStack(spacing: 16) {
 			tabButton(
 				.transform,
 				label: String(localized: "transform.tab.transform", bundle: .module)
@@ -266,9 +266,10 @@ private extension RTSPTransformControlPanel {
 				)
 			}
 		}
-		.padding(2)
+		.padding(.vertical, 6)
+		.padding(.horizontal, 12)
 		.background(
-			RoundedRectangle(cornerRadius: 10, style: .continuous)
+			Capsule(style: .continuous)
 				.fill(Color.primary.opacity(0.10))
 		)
 	}
@@ -278,16 +279,28 @@ private extension RTSPTransformControlPanel {
 		let isActive = (selectedTab == tab)
 		let isFocus = (focusedTab == tab)
 		let content = Text(label)
-			.font(isActive ? .subheadline.bold() : .subheadline)
-			.foregroundStyle(isActive ? Color.white : Color.primary.opacity(0.85))
-			.padding(.vertical, 8)
-			.padding(.horizontal, 16)
-			.background(
-				RoundedRectangle(cornerRadius: 8, style: .continuous)
-					.fill(isFocus ? Color.panelAccent : .clear)
-					.stroke(isActive ? Color.panelAccent : .clear, lineWidth: 3.0)
+			.font(.headline)
+			.fontWeight(isFocus || isActive ? .semibold : .regular)
+			.foregroundStyle(
+				isFocus
+					? Color.black
+					: (isActive ? Color.primary : Color.primary.opacity(0.6))
 			)
-			.contentShape(Rectangle())
+			.padding(.vertical, 10)
+			.padding(.horizontal, 24)
+			.background(
+				Capsule(style: .continuous)
+					.fill(isFocus ? Color.white : Color.clear)
+					.shadow(
+						color: Color.black.opacity(isFocus ? 0.30 : 0),
+						radius: isFocus ? 12 : 0,
+						y: isFocus ? 8 : 0
+					)
+			)
+			.scaleEffect(isFocus ? 1.1 : 1.0)
+			.animation(.easeInOut(duration: 0.18), value: isFocus)
+			.animation(.easeInOut(duration: 0.18), value: isActive)
+			.contentShape(Capsule())
 #if os(tvOS)
 		content
 			.focusable(true)
