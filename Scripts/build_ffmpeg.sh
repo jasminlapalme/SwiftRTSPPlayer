@@ -22,7 +22,7 @@ SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT="$(cd "$SCRIPTS_DIR/.." && pwd)"
 FFMPEG_SRC="$SCRIPTS_DIR/ffmpeg"
 FFMPEG_REPO="https://git.ffmpeg.org/ffmpeg.git"
-FFMPEG_TAG="n8.1.1"
+FFMPEG_TAG="n8.1.2"
 PATCHES_DIR="$SCRIPTS_DIR/patches"
 BUILD="$SCRIPTS_DIR/build"
 OUTPUT="$ROOT/Frameworks"
@@ -89,13 +89,14 @@ EOF
 # system frameworks as load commands so the consumer doesn't redeclare them.
 prepare_framework_dynamic() {
     SDK=$1
-    ARCH=$2
+    ARCHS=$2
     TARGET=$3
     MIN=$4
 
-    SRC="$BUILD/$SDK-$ARCH/include"
-    STATIC_LIB="$BUILD/libs/libffmpeg-$SDK-$ARCH.a"
-    FW="$BUILD/frameworks/$SDK-$ARCH/FFmpeg.framework"
+    FIRST_ARCH=${ARCHS%% *}
+    SRC="$BUILD/$SDK-$FIRST_ARCH/include"
+    STATIC_LIB="$BUILD/libs/libffmpeg-$SDK.a"
+    FW="$BUILD/frameworks/$SDK/FFmpeg.framework"
 
     if [ ! -f "$STATIC_LIB" ]; then
         echo "  ! missing $STATIC_LIB — skipping framework"
@@ -149,8 +150,15 @@ EOF
         INSTALL_NAME="@rpath/FFmpeg.framework/FFmpeg"
     fi
 
+    # One link invocation produces a fat dylib: ld picks the matching slice
+    # per `-arch` out of the fat force-loaded archive.
+    ARCH_FLAGS=""
+    for A in $ARCHS; do
+        ARCH_FLAGS="$ARCH_FLAGS -arch $A"
+    done
+
     "$CC" -dynamiclib \
-        -arch "$ARCH" \
+        $ARCH_FLAGS \
         -mtargetos="$TARGET" \
         -isysroot "$SDK_PATH" \
         -fvisibility=default \
@@ -224,6 +232,15 @@ build_ffmpeg() {
 
     echo "-> Build $PLATFORM $ARCH"
 
+    # FFmpeg's x86 assembly needs nasm/yasm; without it `configure` aborts.
+    # Fall back to a (slower) C-only build so the script stays self-contained.
+    # Install nasm (`brew install nasm`) to keep the x86 asm fast paths.
+    ARCH_EXTRA=""
+    if [ "$ARCH" = "x86_64" ] && ! command -v nasm >/dev/null 2>&1 && ! command -v yasm >/dev/null 2>&1; then
+        echo "   (nasm/yasm not found — building x86_64 with --disable-x86asm)"
+        ARCH_EXTRA="--disable-x86asm"
+    fi
+
     cd "$FFMPEG_SRC"
     make clean || true
 
@@ -236,6 +253,7 @@ build_ffmpeg() {
         --enable-cross-compile \
         --extra-cflags="-arch $ARCH -mtargetos=${TARGET} -isysroot $SDK_PATH -ffile-prefix-map=$FFMPEG_SRC=ffmpeg -ffile-prefix-map=$PREFIX=/ffmpeg-build -ffile-prefix-map=$SDK_PATH=/sdk" \
         --extra-ldflags="-arch $ARCH -mtargetos=${TARGET} -isysroot $SDK_PATH" \
+        $ARCH_EXTRA \
         $COMMON_FLAGS
 
     # Strip user-specific absolute paths from FFMPEG_CONFIGURATION, which is
@@ -284,20 +302,26 @@ apply_patches() {
 fetch_ffmpeg_source
 apply_patches
 
-# SDK | mtargetos value | ARCH | min OS version
+# SDK | mtargetos value | ARCHS (space-separated) | min OS version
+#
+# Simulator and macOS slices are fat (arm64 + x86_64) so consumers can build
+# for the Intel simulator — Xcode pulls x86_64 into Release simulator builds.
+# Apple devices are arm64-only; the visionOS simulator is arm64-only too.
 PLATEFORMES=(
   "xros|xros${MIN_XROS}|arm64|${MIN_XROS}"
   "xrsimulator|xros${MIN_XROS}-simulator|arm64|${MIN_XROS}"
   "iphoneos|ios${MIN_IOS}|arm64|${MIN_IOS}"
-  "iphonesimulator|ios${MIN_IOS}-simulator|arm64|${MIN_IOS}"
-  "macosx|macosx${MIN_MACOS}|arm64|${MIN_MACOS}"
+  "iphonesimulator|ios${MIN_IOS}-simulator|arm64 x86_64|${MIN_IOS}"
+  "macosx|macosx${MIN_MACOS}|arm64 x86_64|${MIN_MACOS}"
   "appletvos|tvos${MIN_TVOS}|arm64|${MIN_TVOS}"
-  "appletvsimulator|tvos${MIN_TVOS}-simulator|arm64|${MIN_TVOS}"
+  "appletvsimulator|tvos${MIN_TVOS}-simulator|arm64 x86_64|${MIN_TVOS}"
 )
 
 for PLATFORME in "${PLATEFORMES[@]}"; do
-    IFS="|" read -r SDK TARGET ARCH MIN <<< "$PLATFORME"
-    build_ffmpeg "$SDK" "$TARGET" "$ARCH"
+    IFS="|" read -r SDK TARGET ARCHS MIN <<< "$PLATFORME"
+    for ARCH in $ARCHS; do
+        build_ffmpeg "$SDK" "$TARGET" "$ARCH"
+    done
 done
 
 echo "√ FFmpeg compilé pour toutes les plateformes"
@@ -305,10 +329,19 @@ echo "√ FFmpeg compilé pour toutes les plateformes"
 mkdir -p "$BUILD/libs"
 
 for PLATFORME in "${PLATEFORMES[@]}"; do
-    IFS="|" read -r SDK TARGET ARCH MIN <<< "$PLATFORME"
-    PREFIX="$BUILD/$SDK-$ARCH"
-    if [ -d "$PREFIX/lib" ]; then
-        libtool -static $(find "$PREFIX/lib" -name "*.a") -o "$BUILD/libs/libffmpeg-$SDK-$ARCH.a"
+    IFS="|" read -r SDK TARGET ARCHS MIN <<< "$PLATFORME"
+    SLICES=()
+    for ARCH in $ARCHS; do
+        PREFIX="$BUILD/$SDK-$ARCH"
+        if [ -d "$PREFIX/lib" ]; then
+            libtool -static $(find "$PREFIX/lib" -name "*.a") -o "$BUILD/libs/libffmpeg-$SDK-$ARCH.a"
+            SLICES+=("$BUILD/libs/libffmpeg-$SDK-$ARCH.a")
+        fi
+    done
+    # Combine the per-arch archives into one fat archive per SDK (a no-op copy
+    # for single-arch SDKs); the framework link force-loads this.
+    if [ ${#SLICES[@]} -gt 0 ]; then
+        lipo -create "${SLICES[@]}" -output "$BUILD/libs/libffmpeg-$SDK.a"
     fi
 done
 
@@ -317,13 +350,14 @@ rm -rf "$OUTPUT/FFmpeg.xcframework"
 
 ARGS=()
 for PLATFORME in "${PLATEFORMES[@]}"; do
-    IFS="|" read -r SDK TARGET ARCH MIN <<< "$PLATFORME"
+    IFS="|" read -r SDK TARGET ARCHS MIN <<< "$PLATFORME"
+    FIRST_ARCH=${ARCHS%% *}
     if [ "$MODE" = "static" ]; then
-        prepare_headers_static "$SDK" "$ARCH"
-        ARGS+=("-library" "$BUILD/libs/libffmpeg-$SDK-$ARCH.a" "-headers" "$BUILD/$SDK-$ARCH/module")
+        prepare_headers_static "$SDK" "$FIRST_ARCH"
+        ARGS+=("-library" "$BUILD/libs/libffmpeg-$SDK.a" "-headers" "$BUILD/$SDK-$FIRST_ARCH/module")
     else
-        prepare_framework_dynamic "$SDK" "$ARCH" "$TARGET" "$MIN"
-        ARGS+=("-framework" "$BUILD/frameworks/$SDK-$ARCH/FFmpeg.framework")
+        prepare_framework_dynamic "$SDK" "$ARCHS" "$TARGET" "$MIN"
+        ARGS+=("-framework" "$BUILD/frameworks/$SDK/FFmpeg.framework")
     fi
 done
 
