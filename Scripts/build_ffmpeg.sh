@@ -26,12 +26,15 @@ FFMPEG_TAG="n8.1.2"
 PATCHES_DIR="$SCRIPTS_DIR/patches"
 BUILD="$SCRIPTS_DIR/build"
 OUTPUT="$ROOT/Frameworks"
+XCODE_DEV_DIR="$(xcode-select -p)"
 
 MIN_IOS="18.0"
 MIN_TVOS="18.0"
 MIN_MACOS="15.0"
 MIN_XROS="1.0"
 
+# Debug info stays enabled (FFmpeg's default -g, on top of -O3) so a dSYM can
+# be extracted per slice; the shipped dylib itself is stripped after dsymutil.
 COMMON_FLAGS="
 --disable-everything
 --enable-avformat
@@ -45,7 +48,6 @@ COMMON_FLAGS="
 --enable-decoder=h264
 --disable-programs
 --disable-doc
---disable-debug
 --disable-symver
 --enable-pic
 "
@@ -173,7 +175,25 @@ EOF
         -Wl,-install_name,"$INSTALL_NAME" \
         -o "$FW/FFmpeg"
 
-    xcrun --sdk "$SDK" strip -x "$FW/FFmpeg"
+    # Extract the dSYM before stripping: the freshly linked dylib carries a
+    # debug map (N_OSO stabs) pointing at the .o members of the static
+    # archive, which dsymutil resolves into standalone DWARF. Source paths
+    # inside were already neutralized at compile time via -ffile-prefix-map.
+    # `strip -S -x` then removes local symbols AND the stab entries, since
+    # those hold absolute archive paths from this machine.
+    DSYM="$BUILD/frameworks/$SDK/FFmpeg.framework.dSYM"
+    rm -rf "$DSYM"
+    dsymutil "$FW/FFmpeg" -o "$DSYM"
+    xcrun --sdk "$SDK" strip -S -x "$FW/FFmpeg"
+
+    # Fail the build if any user-specific absolute path survived into the
+    # artifacts that ship (dylib or dSYM DWARF).
+    for BIN in "$FW/FFmpeg" "$DSYM/Contents/Resources/DWARF/FFmpeg"; do
+        if strings - "$BIN" | grep -m 1 -e "/Users/" -e "$HOME"; then
+            echo "  ! user-specific path leaked into $BIN" >&2
+            exit 1
+        fi
+    done
 
     cat > "$FW/Info.plist" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
@@ -251,7 +271,7 @@ build_ffmpeg() {
         --cc="$CC" \
         --sysroot="$SDK_PATH" \
         --enable-cross-compile \
-        --extra-cflags="-arch $ARCH -mtargetos=${TARGET} -isysroot $SDK_PATH -ffile-prefix-map=$FFMPEG_SRC=ffmpeg -ffile-prefix-map=$PREFIX=/ffmpeg-build -ffile-prefix-map=$SDK_PATH=/sdk" \
+        --extra-cflags="-arch $ARCH -mtargetos=${TARGET} -isysroot $SDK_PATH -ffile-prefix-map=$FFMPEG_SRC=ffmpeg -ffile-prefix-map=$PREFIX=/ffmpeg-build -ffile-prefix-map=$SDK_PATH=/sdk -ffile-prefix-map=$XCODE_DEV_DIR=/xcode" \
         --extra-ldflags="-arch $ARCH -mtargetos=${TARGET} -isysroot $SDK_PATH" \
         $ARCH_EXTRA \
         $COMMON_FLAGS
@@ -261,6 +281,7 @@ build_ffmpeg() {
     sed -i '' \
         -e "s|$PREFIX|/ffmpeg-build|g" \
         -e "s|$SDK_PATH|/sdk|g" \
+        -e "s|$XCODE_DEV_DIR|/xcode|g" \
         -e "s|$FFMPEG_SRC|ffmpeg|g" \
         config.h
 
@@ -358,6 +379,8 @@ for PLATFORME in "${PLATEFORMES[@]}"; do
     else
         prepare_framework_dynamic "$SDK" "$ARCHS" "$TARGET" "$MIN"
         ARGS+=("-framework" "$BUILD/frameworks/$SDK/FFmpeg.framework")
+        # Bundles the dSYM into the slice's dSYMs/ dir (requires an absolute path).
+        ARGS+=("-debug-symbols" "$BUILD/frameworks/$SDK/FFmpeg.framework.dSYM")
     fi
 done
 
