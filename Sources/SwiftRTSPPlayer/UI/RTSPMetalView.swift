@@ -247,9 +247,20 @@ public final class RTSPMetalView: RTSPPlatformView {
 	private func applyTransform() {
 		let rad = rotation * .pi / 180
 
+		// L'axe Y d'AppKit pointe vers le haut (UIKit : vers le bas). On inverse
+		// la translation verticale et le sens de rotation pour qu'une même
+		// configuration produise le même cadrage que sur tvOS/iOS (la référence).
+		#if os(macOS)
+		let translationY = -translation.y
+		let angle = -rad
+		#else
+		let translationY = translation.y
+		let angle = rad
+		#endif
+
 		var transform = CATransform3DIdentity
-		transform = CATransform3DTranslate(transform, translation.x, translation.y, 0)
-		transform = CATransform3DRotate(transform, rad, 0, 0, 1)
+		transform = CATransform3DTranslate(transform, translation.x, translationY, 0)
+		transform = CATransform3DRotate(transform, angle, 0, 0, 1)
 
 		metalLayer.transform = transform
 	}
