@@ -10,9 +10,16 @@ import UIKit
 import AppKit
 #endif
 
-/// Overlay panel that exposes the player's transform (scale, translation, rotation)
-/// through a styled, swipe-driven UI. The library ships the control; the client
-/// decides if/where to show it — typically as an `.overlay` on `RTSPPlayerView`.
+/// Overlay panel that exposes the player's transform (scale, translation,
+/// rotation) — and optionally fisheye correction and camera selection — through
+/// tabs. On iOS and macOS the tabs use native controls (sliders, numeric
+/// fields, segmented tabs); on tvOS they use a focus-driven, swipe-based UI.
+/// The library ships the control; the client decides if/where to show it —
+/// typically as an `.overlay` on `RTSPPlayerView`.
+///
+/// The tabs' contents are also public views — `RTSPTransformControls`,
+/// `RTSPFisheyeControls` and `RTSPCameraListView` — for clients that want to
+/// compose their own panel instead.
 ///
 /// ```swift
 /// RTSPPlayerView(url: url, rotation: rotation, scale: scale, translation: translation)
@@ -54,10 +61,10 @@ public struct RTSPTransformControlPanel: View {
 	private let cameraURL: Binding<RTSPCameraSelection?>?
 	private let managedCredentials: [RTSPManagedCredentials]
 
-#if !os(tvOS)
-	@State var selectedField: Field?
-#endif
-	@State var isFineMode: Bool = false
+	/// Fine mode is a tvOS affordance: it shrinks the remote's adjustment step.
+	/// The native sliders elsewhere position absolutely, so the state stays
+	/// `false` there and the toggle is not shown.
+	@State private var isFineMode: Bool = false
 	@State private var selectedTab: Tab = .transform
 	/// Held here (not in `ONVIFCameraListView`) so the typed ONVIF credentials
 	/// persist when the user switches tabs and comes back to Cameras.
@@ -73,13 +80,9 @@ public struct RTSPTransformControlPanel: View {
 	/// Height of the fixed-layout tabs (slider rows + footer), used to give the
 	/// cameras tab the same height so the panel doesn't resize between tabs.
 	@State private var fixedTabHeight: CGFloat?
-	@FocusState var focusedField: Field?
+#if os(tvOS)
 	@FocusState private var focusedTab: Tab?
-
-	enum Field: Hashable {
-		case scale, transX, transY, rotation
-		case k1v, k2v, k3v, k4v
-	}
+#endif
 
 	private enum Tab: Hashable {
 		case transform, fisheye, cameras
@@ -133,29 +136,11 @@ public struct RTSPTransformControlPanel: View {
 		// Seed the cameras-tab fields from the stream already in play, so
 		// reopening the panel shows the current URL and restores its source. The
 		// URL is credential-free; the tagged credentials say how it authenticates.
-		let initialSelection = cameraURL?.wrappedValue
-		self._onvifManualURL = State(initialValue: initialSelection?.url.absoluteString ?? "")
-
-		var seededUsername = ""
-		var seededPassword = ""
-		// Managed by default: the first set when the host supplied any, unless the
-		// stream in play was set with a different source.
-		var seededCredentialID = managedCredentials.first?.id
-		switch initialSelection?.credentials ?? .none {
-		case .none:
-			break
-		case let .manual(username, password):
-			seededUsername = username
-			seededPassword = password
-			seededCredentialID = nil
-		case let .managed(name):
-			if managedCredentials.contains(where: { $0.id == name }) {
-				seededCredentialID = name
-			}
-		}
-		self._onvifUsername = State(initialValue: seededUsername)
-		self._onvifPassword = State(initialValue: seededPassword)
-		self._selectedCredentialID = State(initialValue: seededCredentialID)
+		let seed = CameraFieldSeed(selection: cameraURL?.wrappedValue, managedCredentials: managedCredentials)
+		self._onvifUsername = State(initialValue: seed.username)
+		self._onvifPassword = State(initialValue: seed.password)
+		self._onvifManualURL = State(initialValue: seed.manualURL)
+		self._selectedCredentialID = State(initialValue: seed.credentialID)
 	}
 
 	private var hasCameras: Bool { cameraURL != nil }
@@ -178,9 +163,9 @@ public struct RTSPTransformControlPanel: View {
 			headerBar
 			switch effectiveTab {
 			case .transform:
-				fixedTab { transformRows }
+				fixedTab { transformControls }
 			case .fisheye:
-				fixedTab { fisheyeRows }
+				fixedTab { fisheyeControls }
 			case .cameras:
 				if let cameraURL {
 					// Match the fixed tabs' height so switching doesn't resize
@@ -199,8 +184,15 @@ public struct RTSPTransformControlPanel: View {
 			}
 		}
 		.padding(16)
+#if os(macOS)
+		.controlSize(.large)
+#endif
 		.background(panelBackground)
+#if os(tvOS)
 		.frame(maxWidth: 720)
+#else
+		.frame(maxWidth: 420)
+#endif
 		.onPreferenceChange(FixedTabHeightKey.self) { height in
 			if height > 0 { fixedTabHeight = height }
 		}
@@ -219,10 +211,6 @@ public struct RTSPTransformControlPanel: View {
 		// The remote's Menu/back button dismisses the panel, standing in for the
 		// close button that other platforms show in the header.
 		.onExitCommand(perform: closeAction)
-#else
-		.onChange(of: focusedField) { _, newValue in
-			if let newValue { selectedField = newValue }
-		}
 #endif
 	}
 
@@ -267,76 +255,43 @@ private struct FixedTabHeightKey: PreferenceKey {
 
 private extension RTSPTransformControlPanel {
 
-	@ViewBuilder
-	var transformRows: some View {
-		row(
-			field: .scale,
-			label: String(localized: "transform.scale", bundle: .module),
-			value: $scale,
-			range: scaleRange,
-			sensivity: scaleSensivity
-		)
-		row(
-			field: .transX,
-			label: String(localized: "transform.translateX", bundle: .module),
-			value: Binding(get: { translation.x }, set: { translation.x = $0 }),
-			range: translationXRange,
-			sensivity: translationXSensivity
-		)
-		row(
-			field: .transY,
-			label: String(localized: "transform.translateY", bundle: .module),
-			value: Binding(get: { translation.y }, set: { translation.y = $0 }),
-			range: translationYRange,
-			sensivity: translationYSensivity
-		)
-		row(
-			field: .rotation,
-			label: String(localized: "transform.rotation", bundle: .module),
-			value: $rotation,
-			range: rotationRange,
-			sensivity: rotationSensivity,
-			ticks: [-180, -90, 0, 90, 180]
+	var transformControls: some View {
+		RTSPTransformControls(
+			scale: $scale,
+			translation: $translation,
+			rotation: $rotation,
+			scaleRange: scaleRange,
+			translationXRange: translationXRange,
+			translationYRange: translationYRange,
+			rotationRange: rotationRange,
+			scaleSensivity: scaleSensivity,
+			translationXSensivity: translationXSensivity,
+			translationYSensivity: translationYSensivity,
+			rotationSensivity: rotationSensivity,
+			isFineMode: isFineMode
 		)
 	}
 
-	@ViewBuilder
-	private var fisheyeRows: some View {
-		row(
-			field: .k1v,
-			label: String(localized: "fisheye.k1", bundle: .module),
-			value: Binding(get: { fisheyeCorrection.k1v }, set: { fisheyeCorrection.k1v = $0 }),
-			range: fisheyeRange,
-			sensivity: fisheyeSensivity
-		)
-		row(
-			field: .k2v,
-			label: String(localized: "fisheye.k2", bundle: .module),
-			value: Binding(get: { fisheyeCorrection.k2v }, set: { fisheyeCorrection.k2v = $0 }),
-			range: fisheyeRange,
-			sensivity: fisheyeSensivity
-		)
-		row(
-			field: .k3v,
-			label: String(localized: "fisheye.k3", bundle: .module),
-			value: Binding(get: { fisheyeCorrection.k3v }, set: { fisheyeCorrection.k3v = $0 }),
-			range: fisheyeRange,
-			sensivity: fisheyeSensivity
-		)
-		row(
-			field: .k4v,
-			label: String(localized: "fisheye.k4", bundle: .module),
-			value: Binding(get: { fisheyeCorrection.k4v }, set: { fisheyeCorrection.k4v = $0 }),
-			range: fisheyeRange,
-			sensivity: fisheyeSensivity
+	var fisheyeControls: some View {
+		RTSPFisheyeControls(
+			fisheyeCorrection: $fisheyeCorrection,
+			fisheyeRange: fisheyeRange,
+			fisheyeSensivity: fisheyeSensivity,
+			isFineMode: isFineMode
 		)
 	}
 
 	// MARK: - Header bar (tabs + close)
 
-	private var headerBar: some View {
+	var headerBar: some View {
 		HStack(spacing: 10) {
+#if os(tvOS)
 			tabPill
+#else
+			if hasFisheye || hasCameras {
+				tabPicker
+			}
+#endif
 			Spacer(minLength: 0)
 			// tvOS has no pointer to tap a close button, and a focusable one steals
 			// the upward swipe off the controls. There the panel is dismissed with
@@ -354,7 +309,8 @@ private extension RTSPTransformControlPanel {
 		.padding()
 	}
 
-	private var tabPill: some View {
+#if os(tvOS)
+	var tabPill: some View {
 		HStack(spacing: 16) {
 			tabButton(
 				.transform,
@@ -387,7 +343,7 @@ private extension RTSPTransformControlPanel {
 	private func tabButton(_ tab: Tab, systemImage: String, label: String) -> some View {
 		let isActive = (selectedTab == tab)
 		let isFocus = (focusedTab == tab)
-		let content = Image(systemName: systemImage)
+		Image(systemName: systemImage)
 			.font(.body)
 			.fontWeight(isFocus || isActive ? .semibold : .regular)
 			.foregroundStyle(
@@ -412,19 +368,34 @@ private extension RTSPTransformControlPanel {
 			.animation(.easeInOut(duration: 0.18), value: isActive)
 			.contentShape(Capsule())
 			.accessibilityLabel(label)
-#if os(tvOS)
-		content
 			.focusable(true)
 			.focused($focusedTab, equals: tab)
-#else
-		Button { selectedTab = tab } label: { content }
-			.buttonStyle(.plain)
-#endif
 	}
+#else
+	var tabPicker: some View {
+		Picker(selection: $selectedTab) {
+			Text(String(localized: "transform.tab.transform", bundle: .module))
+				.tag(Tab.transform)
+			if hasFisheye {
+				Text(String(localized: "transform.tab.fisheye", bundle: .module))
+					.tag(Tab.fisheye)
+			}
+			if hasCameras {
+				Text(String(localized: "transform.tab.cameras", bundle: .module))
+					.tag(Tab.cameras)
+			}
+		} label: {
+			EmptyView()
+		}
+		.pickerStyle(.segmented)
+		.labelsHidden()
+		.fixedSize()
+	}
+#endif
 
 	// MARK: - Footer
 
-	private var footer: some View {
+	var footer: some View {
 		HStack {
 			Button {
 				resetAll()
@@ -437,22 +408,29 @@ private extension RTSPTransformControlPanel {
 
 			Spacer()
 
+#if os(tvOS)
 			Button(String(localized: "transform.fine", bundle: .module)) {
 				isFineMode.toggle()
 			}
 			.foregroundStyle(isFineMode ? Color.panelAccent : .primary)
 			.font(isFineMode ? .body.bold() : .body)
+#endif
 		}
 		.padding()
 	}
 
 	// MARK: - Panel background
 
-	private var panelBackground: some View {
-		// Custom semi-transparent surface — no system blur, so the video shows
-		// crisply behind the panel. Adaptive low-opacity veil keeps text legible.
+	var panelBackground: some View {
 		RoundedRectangle(cornerRadius: 18, style: .continuous)
+#if os(tvOS)
+			// Custom semi-transparent surface — no system blur, so the video shows
+			// crisply behind the panel. Adaptive low-opacity veil keeps text legible.
 			.fill(Color.panelSurface)
+#else
+			// Standard system material, as a native overlay panel would use.
+			.fill(.regularMaterial)
+#endif
 			.overlay(
 				RoundedRectangle(cornerRadius: 18, style: .continuous)
 					.strokeBorder(Color.primary.opacity(0.15), lineWidth: 0.5)

@@ -7,9 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		DACD7BDD2F89A2E800BADE56 /* SwiftRTSPPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = DACD7BDC2F89A2E800BADE56 /* SwiftRTSPPlayer */; };
 		DACD7C1E2F89A78A00BADE56 /* libiconv.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = DACD7C1D2F89A78200BADE56 /* libiconv.tbd */; };
 		DACD7C202F89A7A000BADE56 /* libz.tbd in Frameworks */ = {isa = PBXBuildFile; fileRef = DACD7C1F2F89A79A00BADE56 /* libz.tbd */; };
+		DADE4901300DB25E00295132 /* SwiftRTSPPlayer in Frameworks */ = {isa = PBXBuildFile; productRef = DADE4900300DB25E00295132 /* SwiftRTSPPlayer */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,7 +32,7 @@
 			files = (
 				DACD7C1E2F89A78A00BADE56 /* libiconv.tbd in Frameworks */,
 				DACD7C202F89A7A000BADE56 /* libz.tbd in Frameworks */,
-				DACD7BDD2F89A2E800BADE56 /* SwiftRTSPPlayer in Frameworks */,
+				DADE4901300DB25E00295132 /* SwiftRTSPPlayer in Frameworks */,
 			);
 		};
 /* End PBXFrameworksBuildPhase section */
@@ -82,7 +82,7 @@
 			);
 			name = DemoSwiftRTSPPlayer;
 			packageProductDependencies = (
-				DACD7BDC2F89A2E800BADE56 /* SwiftRTSPPlayer */,
+				DADE4900300DB25E00295132 /* SwiftRTSPPlayer */,
 			);
 			productName = DemoSwiftRTSPPlayer;
 			productReference = DACD7BC72F89A2A700BADE56 /* DemoSwiftRTSPPlayer.app */;
@@ -114,7 +114,7 @@
 			mainGroup = DACD7BBE2F89A2A700BADE56;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				DACD7BDB2F89A2E800BADE56 /* XCLocalSwiftPackageReference "../../../SwiftRTSPPlayer" */,
+				DADE48FF300DB25E00295132 /* XCLocalSwiftPackageReference "../../../SwiftRTSPPlayer" */,
 			);
 			preferredProjectObjectVersion = 100;
 			productRefGroup = DACD7BC82F89A2A700BADE56 /* Products */;
@@ -393,14 +393,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCLocalSwiftPackageReference section */
-		DACD7BDB2F89A2E800BADE56 /* XCLocalSwiftPackageReference "../../../SwiftRTSPPlayer" */ = {
+		DADE48FF300DB25E00295132 /* XCLocalSwiftPackageReference "../../../SwiftRTSPPlayer" */ = {
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../../SwiftRTSPPlayer;
 		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		DACD7BDC2F89A2E800BADE56 /* SwiftRTSPPlayer */ = {
+		DADE4900300DB25E00295132 /* SwiftRTSPPlayer */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = SwiftRTSPPlayer;
 		};

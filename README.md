@@ -64,7 +64,7 @@ RTSPPlayerView(
 
 ### Control panel
 
-`RTSPTransformControlPanel` exposes the transforms through a swipe-driven slider UI, intended as an `.overlay`:
+`RTSPTransformControlPanel` exposes the transforms — and optionally fisheye correction and ONVIF camera selection — through a tabbed panel, intended as an `.overlay`. On iOS and macOS the tabs use native controls (sliders with numeric fields, segmented tabs); on tvOS they use a focus-driven, swipe-based UI suited to the Siri remote:
 
 ```swift
 RTSPPlayerView(url: url, rotation: rotation, scale: scale, translation: translation, fisheyeCorrection: fisheye)
@@ -78,6 +78,12 @@ RTSPPlayerView(url: url, rotation: rotation, scale: scale, translation: translat
         .padding()
     }
 ```
+
+The three tabs are also public views, for apps that want to compose their own panel instead of using `RTSPTransformControlPanel`:
+
+- `RTSPTransformControls` — scale / translation / rotation sliders
+- `RTSPFisheyeControls` — the four `FisheyeCorrection` coefficients
+- `RTSPCameraListView` — ONVIF discovery, credentials and manual RTSP URL entry, writing the chosen stream to a `Binding<RTSPCameraSelection?>`
 
 ### Playback state
 
