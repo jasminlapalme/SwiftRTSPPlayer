@@ -1,652 +1,670 @@
 {
-  "sourceLanguage" : "en",
-  "strings" : {
-    "cameras.empty" : {
-      "comment" : "Shown in the cameras tab when the network scan found no ONVIF camera.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No cameras found"
+  "sourceLanguage": "en",
+  "strings": {
+    "cameras.credentialSource": {
+      "comment": "Label of the picker that chooses which credentials the cameras tab uses.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Credentials"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucune caméra trouvée"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Identifiants"
           }
         }
       }
     },
-    "cameras.credentialSource" : {
-      "comment" : "Label of the picker that chooses which credentials the cameras tab uses.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Credentials"
+    "cameras.credentialSource.manual": {
+      "comment": "Picker option in the cameras tab to type credentials by hand instead of using a host-supplied set.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manual"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Identifiants"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manuel"
           }
         }
       }
     },
-    "cameras.credentialSource.manual" : {
-      "comment" : "Picker option in the cameras tab to type credentials by hand instead of using a host-supplied set.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manual"
+    "cameras.empty": {
+      "comment": "Shown in the cameras tab when the network scan found no ONVIF camera.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No cameras found"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Manuel"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune caméra trouvée"
           }
         }
       }
     },
-    "cameras.manualURL.placeholder" : {
-      "comment" : "Placeholder for the manual RTSP URL text field.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "rtsp://…"
+    "cameras.manualURL": {
+      "comment": "Row label of the manual RTSP URL field when hosted in a form (macOS).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manual URL"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "rtsp://…"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "URL manuelle"
           }
         }
       }
     },
-    "cameras.password" : {
-      "comment" : "Placeholder of the camera password field in the cameras tab.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Password"
+    "cameras.manualURL.placeholder": {
+      "comment": "Placeholder for the manual RTSP URL text field.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rtsp://…"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mot de passe"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "rtsp://…"
           }
         }
       }
     },
-    "cameras.username" : {
-      "comment" : "Placeholder of the camera username field in the cameras tab.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Username"
+    "cameras.password": {
+      "comment": "Placeholder of the camera password field in the cameras tab.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Password"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Utilisateur"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mot de passe"
           }
         }
       }
     },
-    "error.cannotCreateDecompressionSession" : {
-      "comment" : "Error message when VTDecompressionSessionCreate fails.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cannot create H.264 decompression session"
+    "cameras.username": {
+      "comment": "Placeholder of the camera username field in the cameras tab.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Username"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible de créer la session de décompression H.264"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Utilisateur"
           }
         }
       }
     },
-    "error.cannotCreateFormatDescription" : {
-      "comment" : "Error message when CMVideoFormatDescriptionCreateFromH264ParameterSets fails.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cannot create H.264 format description"
+    "error.cannotCreateDecompressionSession": {
+      "comment": "Error message when VTDecompressionSessionCreate fails.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cannot create H.264 decompression session"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible de créer la description de format H.264"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de créer la session de décompression H.264"
           }
         }
       }
     },
-    "error.cannotFindStreamInfo" : {
-      "comment" : "Error message when avformat_find_stream_info fails.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cannot find stream info"
+    "error.cannotCreateFormatDescription": {
+      "comment": "Error message when CMVideoFormatDescriptionCreateFromH264ParameterSets fails.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cannot create H.264 format description"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible de trouver les informations du flux"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de créer la description de format H.264"
           }
         }
       }
     },
-    "error.cannotOpenURL" : {
-      "comment" : "Error message when avformat_open_input fails on the supplied RTSP URL.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cannot open RTSP URL"
+    "error.cannotFindStreamInfo": {
+      "comment": "Error message when avformat_find_stream_info fails.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cannot find stream info"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Impossible d’ouvrir l’URL RTSP"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible de trouver les informations du flux"
           }
         }
       }
     },
-    "error.noVideoStream" : {
-      "comment" : "Error message when the RTSP source contains no supported (H.264 or H.265/HEVC) video stream.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No supported video stream"
+    "error.cannotOpenURL": {
+      "comment": "Error message when avformat_open_input fails on the supplied RTSP URL.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cannot open RTSP URL"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucun flux vidéo pris en charge"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Impossible d’ouvrir l’URL RTSP"
           }
         }
       }
     },
-    "error.onvif.accountLocked" : {
-      "comment" : "Error shown when the camera locked the account after too many failed logins (common on Dahua/Lorex cameras).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The camera account is locked after too many failed logins. Wait a few minutes or reboot the camera, then try again."
+    "error.noVideoStream": {
+      "comment": "Error message when the RTSP source contains no supported (H.264 or H.265/HEVC) video stream.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No supported video stream"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Le compte de la caméra est verrouillé après trop d’échecs de connexion. Patientez quelques minutes ou redémarrez la caméra, puis réessayez."
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucun flux vidéo pris en charge"
           }
         }
       }
     },
-    "error.onvif.fault" : {
-      "comment" : "Error shown when the camera answers an ONVIF request with a SOAP fault without a reason text.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The camera rejected the request — check the credentials"
+    "error.onvif.accountLocked": {
+      "comment": "Error shown when the camera locked the account after too many failed logins (common on Dahua/Lorex cameras).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The camera account is locked after too many failed logins. Wait a few minutes or reboot the camera, then try again."
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La caméra a refusé la requête — vérifiez les identifiants"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Le compte de la caméra est verrouillé après trop d’échecs de connexion. Patientez quelques minutes ou redémarrez la caméra, puis réessayez."
           }
         }
       }
     },
-    "error.onvif.invalidResponse" : {
-      "comment" : "Error shown when an ONVIF request fails or returns a non-HTTP response.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Invalid response from the camera"
+    "error.onvif.fault": {
+      "comment": "Error shown when the camera answers an ONVIF request with a SOAP fault without a reason text.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The camera rejected the request — check the credentials"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Réponse invalide de la caméra"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La caméra a refusé la requête — vérifiez les identifiants"
           }
         }
       }
     },
-    "error.onvif.malformedStreamURL" : {
-      "comment" : "Error shown when GetStreamUri returns a string that is not a valid URL.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The camera returned an invalid stream URL"
+    "error.onvif.invalidResponse": {
+      "comment": "Error shown when an ONVIF request fails or returns a non-HTTP response.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Invalid response from the camera"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La caméra a retourné une URL de flux invalide"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réponse invalide de la caméra"
           }
         }
       }
     },
-    "error.onvif.noProfiles" : {
-      "comment" : "Error shown when GetProfiles returns no media profile.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "The camera exposes no media profile"
+    "error.onvif.malformedStreamURL": {
+      "comment": "Error shown when GetStreamUri returns a string that is not a valid URL.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The camera returned an invalid stream URL"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "La caméra n’expose aucun profil média"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La caméra a retourné une URL de flux invalide"
           }
         }
       }
     },
-    "error.onvif.notAuthorized" : {
-      "comment" : "Error shown when the camera rejects the credentials (ter:NotAuthorized).",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Authentication failed — check the username and password. Repeated failures may lock the camera account."
+    "error.onvif.noProfiles": {
+      "comment": "Error shown when GetProfiles returns no media profile.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "The camera exposes no media profile"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Échec de l’authentification — vérifiez le nom d’utilisateur et le mot de passe. Des échecs répétés peuvent verrouiller le compte de la caméra."
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "La caméra n’expose aucun profil média"
           }
         }
       }
     },
-    "error.onvif.requestFailed %lld" : {
-      "comment" : "Error shown when an ONVIF request returns an HTTP error status. The argument is the HTTP status code.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Camera request failed (HTTP %lld)"
+    "error.onvif.notAuthorized": {
+      "comment": "Error shown when the camera rejects the credentials (ter:NotAuthorized).",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Authentication failed — check the username and password. Repeated failures may lock the camera account."
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Échec de la requête à la caméra (HTTP %lld)"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échec de l’authentification — vérifiez le nom d’utilisateur et le mot de passe. Des échecs répétés peuvent verrouiller le compte de la caméra."
           }
         }
       }
     },
-    "error.unsupportedScheme" : {
-      "comment" : "Error message when the URL scheme is anything other than rtsp:// or rtsps://.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Unsupported URL scheme; expected rtsp:// or rtsps://"
+    "error.onvif.requestFailed %lld": {
+      "comment": "Error shown when an ONVIF request returns an HTTP error status. The argument is the HTTP status code.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Camera request failed (HTTP %lld)"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Schéma d’URL non pris en charge ; attendu rtsp:// ou rtsps://"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échec de la requête à la caméra (HTTP %lld)"
           }
         }
       }
     },
-    "fisheye.k1" : {
-      "comment" : "Label of the fisheye k1 coefficient slider.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "k1"
+    "error.unsupportedScheme": {
+      "comment": "Error message when the URL scheme is anything other than rtsp:// or rtsps://.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Unsupported URL scheme; expected rtsp:// or rtsps://"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "k1"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Schéma d’URL non pris en charge ; attendu rtsp:// ou rtsps://"
           }
         }
       }
     },
-    "fisheye.k2" : {
-      "comment" : "Label of the fisheye k2 coefficient slider.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "k2"
+    "fisheye.k1": {
+      "comment": "Label of the fisheye k1 coefficient slider.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "k1"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "k2"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "k1"
           }
         }
       }
     },
-    "fisheye.k3" : {
-      "comment" : "Label of the fisheye k3 coefficient slider.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "k3"
+    "fisheye.k2": {
+      "comment": "Label of the fisheye k2 coefficient slider.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "k2"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "k3"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "k2"
           }
         }
       }
     },
-    "fisheye.k4" : {
-      "comment" : "Label of the fisheye k4 coefficient slider.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "k4"
+    "fisheye.k3": {
+      "comment": "Label of the fisheye k3 coefficient slider.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "k3"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "k4"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "k3"
           }
         }
       }
     },
-    "playback.noSource" : {
-      "comment" : "Status overlay shown when no stream URL has been provided to the player.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "No stream source specified"
+    "fisheye.k4": {
+      "comment": "Label of the fisheye k4 coefficient slider.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "k4"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aucune source de flux spécifiée"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "k4"
           }
         }
       }
     },
-    "playback.connecting" : {
-      "comment" : "Status overlay shown while the player is establishing the initial RTSP connection.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connecting to stream…"
+    "playback.connecting": {
+      "comment": "Status overlay shown while the player is establishing the initial RTSP connection.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connecting to stream…"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Connexion au flux…"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Connexion au flux…"
           }
         }
       }
     },
-    "transform.allDefaults" : {
-      "comment" : "Button label that resets all transform controls to their defaults.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "All defaults"
+    "playback.noSource": {
+      "comment": "Status overlay shown when no stream URL has been provided to the player.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "No stream source specified"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Tout réinitialiser"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Aucune source de flux spécifiée"
           }
         }
       }
     },
-    "transform.close" : {
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close"
+    "transform.allDefaults": {
+      "comment": "Button label that resets all transform controls to their defaults.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "All defaults"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fermer"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout réinitialiser"
           }
         }
       }
     },
-    "transform.fine" : {
-      "comment" : "Toggle that enables fine-grained adjustments on the transform sliders.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fine mode"
+    "transform.close": {
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Close"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Mode fin"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fermer"
           }
         }
       }
     },
-    "transform.rotation" : {
-      "comment" : "Label of the rotation slider in the transform control panel.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rotation"
+    "transform.fine": {
+      "comment": "Toggle that enables fine-grained adjustments on the transform sliders.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fine mode"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Rotation"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mode fin"
           }
         }
       }
     },
-    "transform.scale" : {
-      "comment" : "Label of the scale slider in the transform control panel.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Scale"
+    "transform.rotation": {
+      "comment": "Label of the rotation slider in the transform control panel.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rotation"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Échelle"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rotation"
           }
         }
       }
     },
-    "transform.swipeHint" : {
-      "comment" : "Hint shown under the selected slider, telling the user to swipe horizontally to adjust the value.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "← SWIPE TO ADJUST →"
+    "transform.scale": {
+      "comment": "Label of the scale slider in the transform control panel.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Scale"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "← GLISSER POUR AJUSTER →"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Échelle"
           }
         }
       }
     },
-    "transform.tab.cameras" : {
-      "comment" : "Tab title for the ONVIF camera discovery section of the transform control panel.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cameras"
+    "transform.swipeHint": {
+      "comment": "Hint shown under the selected slider, telling the user to swipe horizontally to adjust the value.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "← SWIPE TO ADJUST →"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Caméras"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "← GLISSER POUR AJUSTER →"
           }
         }
       }
     },
-    "transform.tab.fisheye" : {
-      "comment" : "Tab title for the fisheye correction section of the transform control panel.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fisheye"
+    "transform.tab.cameras": {
+      "comment": "Tab title for the ONVIF camera discovery section of the transform control panel.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cameras"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Fisheye"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Caméras"
           }
         }
       }
     },
-    "transform.tab.transform" : {
-      "comment" : "Tab title for the transform section of the transform control panel.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transform"
+    "transform.tab.fisheye": {
+      "comment": "Tab title for the fisheye correction section of the transform control panel.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fisheye"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Transform."
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Fisheye"
           }
         }
       }
     },
-    "transform.translateX" : {
-      "comment" : "Label of the X-axis translation slider in the transform control panel.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trans X"
+    "transform.tab.transform": {
+      "comment": "Tab title for the transform section of the transform control panel.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transform"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trans X"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Transform."
           }
         }
       }
     },
-    "transform.translateY" : {
-      "comment" : "Label of the Y-axis translation slider in the transform control panel.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trans Y"
+    "transform.translateX": {
+      "comment": "Label of the X-axis translation slider in the transform control panel.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trans X"
           }
         },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Trans Y"
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trans X"
+          }
+        }
+      }
+    },
+    "transform.translateY": {
+      "comment": "Label of the Y-axis translation slider in the transform control panel.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trans Y"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Trans Y"
           }
         }
       }
     }
   },
-  "version" : "1.0"
+  "version": "1.0"
 }

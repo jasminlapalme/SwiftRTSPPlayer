@@ -171,14 +171,16 @@ public struct RTSPTransformControlPanel: View {
 					// Match the fixed tabs' height so switching doesn't resize
 					// the panel; falls back to the view's natural size until a
 					// fixed tab has been measured.
-					ONVIFCameraListView(
-						currentSelection: cameraURL,
-						username: $onvifUsername,
-						password: $onvifPassword,
-						manualURL: $onvifManualURL,
-						managedCredentials: managedCredentials,
-						selectedCredentialID: $selectedCredentialID
-					)
+					ScrollView {
+						ONVIFCameraListView(
+							currentSelection: cameraURL,
+							username: $onvifUsername,
+							password: $onvifPassword,
+							manualURL: $onvifManualURL,
+							managedCredentials: managedCredentials,
+							selectedCredentialID: $selectedCredentialID
+						).padding(.leading).padding(.trailing)
+					}
 					.frame(height: fixedTabHeight, alignment: .top)
 				}
 			}

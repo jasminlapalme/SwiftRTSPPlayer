@@ -13,6 +13,18 @@ import SwiftUI
 /// writes it (with the camera's name) to `currentSelection`; the camera matching
 /// the selection's host shows a checkmark, including when it was set before the
 /// panel opened.
+/// Horizontal inset used by the standalone panel; none on macOS, where the
+/// hosting form draws its own row insets.
+private struct PanelHorizontalPadding: ViewModifier {
+	func body(content: Content) -> some View {
+#if os(macOS)
+		content
+#else
+		content.padding(.horizontal)
+#endif
+	}
+}
+
 struct ONVIFCameraListView: View {
 
 	/// A camera vanishing for this long is considered gone (~2 missed probe
@@ -57,13 +69,13 @@ struct ONVIFCameraListView: View {
 				Text(String(localized: "cameras.empty", bundle: .module))
 					.font(.caption)
 					.foregroundStyle(.secondary)
-					.padding(.horizontal)
+					.modifier(PanelHorizontalPadding())
 			}
 			if let errorMessage {
 				Text(errorMessage)
 					.font(.caption)
 					.foregroundStyle(.red)
-					.padding(.horizontal)
+					.modifier(PanelHorizontalPadding())
 			}
 			cameraList
 		}
@@ -80,133 +92,6 @@ struct ONVIFCameraListView: View {
 		.onChange(of: selectedCredentialID) { _, _ in
 			reconnectForCredentialChange()
 		}
-	}
-
-	// MARK: - Subviews
-
-	@ViewBuilder
-	private var credentialFields: some View {
-		VStack(alignment: .leading, spacing: 10) {
-			if !managedCredentials.isEmpty {
-				credentialSourcePicker
-			}
-			// Only the manual source exposes editable fields; a managed set
-			// carries its own username/password.
-			if isManualSource {
-				manualCredentialFields
-			}
-		}
-		.padding(.horizontal)
-	}
-
-	/// Lets the user pick a host-supplied credential set or fall back to typing
-	/// credentials by hand. Shown only when the host supplied managed sets.
-	private var credentialSourcePicker: some View {
-		Picker(String(localized: "cameras.credentialSource", bundle: .module), selection: $selectedCredentialID) {
-			ForEach(managedCredentials) { cred in
-				Text(cred.name).tag(Optional(cred.id))
-			}
-			Text(String(localized: "cameras.credentialSource.manual", bundle: .module)).tag(String?.none)
-		}
-		.pickerStyle(.menu)
-	}
-
-	private var manualCredentialFields: some View {
-		HStack(spacing: 10) {
-			TextField(String(localized: "cameras.username", bundle: .module), text: $username)
-				.textContentType(.username)
-			SecureField(String(localized: "cameras.password", bundle: .module), text: $password)
-				.textContentType(.password)
-		}
-#if !os(tvOS)
-		.textFieldStyle(.roundedBorder)
-#endif
-#if os(iOS) || os(visionOS)
-		.textInputAutocapitalization(.never)
-		.autocorrectionDisabled()
-#endif
-	}
-
-	/// Manual RTSP URL entry, for cameras that don't answer discovery probes
-	/// (different subnet, multicast blocked, non-ONVIF device). Credentials can
-	/// be embedded in the URL (`rtsp://user:pass@host/path`). Submitting a valid
-	/// URL connects to it immediately.
-	private var manualURLField: some View {
-		TextField(String(localized: "cameras.manualURL.placeholder", bundle: .module), text: $manualURL)
-			.textContentType(.URL)
-#if os(iOS) || os(visionOS)
-			.keyboardType(.URL)
-#endif
-			.onSubmit(connectToManualURL)
-#if !os(tvOS)
-			.textFieldStyle(.roundedBorder)
-#endif
-#if os(iOS) || os(visionOS)
-			.textInputAutocapitalization(.never)
-			.autocorrectionDisabled()
-#endif
-	}
-
-	private var cameraList: some View {
-		ScrollView {
-			VStack(spacing: 16) {
-				ForEach(cameras) { camera in
-					cameraRow(camera)
-				}
-				manualURLField
-			}
-			// `.card` grows and lifts the focused row (~1.1×) and the focus
-			// effect draws outside the scroll view, so reserve a margin all
-			// around for it to expand into instead of past the panel edge.
-			.padding(.horizontal, 30)
-			.padding(.vertical, 10)
-		}
-		// Fill the height the panel imposes (so the cameras tab matches the
-		// other tabs); cap it when shown unconstrained (e.g. previews).
-		.frame(maxHeight: .infinity)
-	}
-
-	@ViewBuilder
-	private func cameraRow(_ camera: ONVIFCamera) -> some View {
-		Button {
-			connect(to: camera)
-		} label: {
-			HStack(spacing: 12) {
-				Image(systemName: "web.camera")
-					.foregroundStyle(Color.panelAccent)
-				VStack(alignment: .leading, spacing: 2) {
-					// The camera's configured hostname, once GetHostname has
-					// answered; the discovery scope name until then.
-					Text(hostnames[camera.id] ?? camera.name)
-						.font(.subheadline.weight(.semibold))
-					Text(camera.ipAddress)
-						.font(.caption)
-						.foregroundStyle(.secondary)
-				}
-				Spacer(minLength: 0)
-				if connectingCameraID == camera.id {
-					ProgressView()
-				} else if isCurrent(camera) {
-					Image(systemName: "checkmark")
-						.font(.caption.weight(.semibold))
-						.foregroundStyle(Color.panelAccent)
-				}
-			}
-			.padding(12)
-#if !os(tvOS)
-			.background(
-				RoundedRectangle(cornerRadius: 10, style: .continuous)
-					.fill(Color.primary.opacity(0.06))
-			)
-#endif
-			.contentShape(Rectangle())
-		}
-#if os(tvOS)
-		.buttonStyle(.card)
-#else
-		.buttonStyle(.plain)
-#endif
-		.disabled(connectingCameraID != nil)
 	}
 
 	/// Whether the player's current URL points at this camera — true right
@@ -343,6 +228,173 @@ struct ONVIFCameraListView: View {
 				errorMessage = error.localizedDescription
 			}
 		}
+	}
+}
+
+// MARK: - Subviews
+
+private extension ONVIFCameraListView {
+
+	@ViewBuilder
+	var credentialFields: some View {
+		VStack(alignment: .leading, spacing: 10) {
+			if !managedCredentials.isEmpty {
+				credentialSourcePicker
+			}
+			// Only the manual source exposes editable fields; a managed set
+			// carries its own username/password.
+			if isManualSource {
+				manualCredentialFields
+			}
+		}
+#if !os(macOS)
+		.padding(.horizontal)
+#endif
+	}
+
+	/// Lets the user pick a host-supplied credential set or fall back to typing
+	/// credentials by hand. Shown only when the host supplied managed sets.
+	var credentialSourcePicker: some View {
+		Picker(String(localized: "cameras.credentialSource", bundle: .module), selection: $selectedCredentialID) {
+			ForEach(managedCredentials) { cred in
+				Text(cred.name).tag(Optional(cred.id))
+			}
+			Text(String(localized: "cameras.credentialSource.manual", bundle: .module)).tag(String?.none)
+		}
+		.pickerStyle(.menu)
+	}
+
+	var manualCredentialFields: some View {
+#if os(macOS)
+		// One row per field, without a forced style: the host is typically a
+		// grouped Form (inspector) that draws its own native rows — side by
+		// side, the fields become unreadable in a narrow panel.
+		VStack(spacing: 10) {
+			TextField(String(localized: "cameras.username", bundle: .module), text: $username)
+				.textContentType(.username)
+			SecureField(String(localized: "cameras.password", bundle: .module), text: $password)
+				.textContentType(.password)
+		}
+#else
+		HStack(spacing: 10) {
+			TextField(String(localized: "cameras.username", bundle: .module), text: $username)
+				.textContentType(.username)
+			SecureField(String(localized: "cameras.password", bundle: .module), text: $password)
+				.textContentType(.password)
+		}
+#if !os(tvOS)
+		.textFieldStyle(.roundedBorder)
+#endif
+#if os(iOS) || os(visionOS)
+		.textInputAutocapitalization(.never)
+		.autocorrectionDisabled()
+#endif
+#endif
+	}
+
+	/// Manual RTSP URL entry, for cameras that don't answer discovery probes
+	/// (different subnet, multicast blocked, non-ONVIF device). Credentials can
+	/// be embedded in the URL (`rtsp://user:pass@host/path`). Submitting a valid
+	/// URL connects to it immediately.
+	var manualURLField: some View {
+#if os(macOS)
+		// In a Form the field's title becomes the row label, so give it a real
+		// one and keep the example URL as the prompt.
+		TextField(
+			String(localized: "cameras.manualURL", bundle: .module),
+			text: $manualURL,
+			prompt: Text(verbatim: String(localized: "cameras.manualURL.placeholder", bundle: .module))
+		)
+		.textContentType(.URL)
+		.onSubmit(connectToManualURL)
+#else
+		TextField(String(localized: "cameras.manualURL.placeholder", bundle: .module), text: $manualURL)
+			.textContentType(.URL)
+#if os(iOS) || os(visionOS)
+			.keyboardType(.URL)
+#endif
+			.onSubmit(connectToManualURL)
+#if !os(tvOS)
+			.textFieldStyle(.roundedBorder)
+#endif
+#if os(iOS) || os(visionOS)
+			.textInputAutocapitalization(.never)
+			.autocorrectionDisabled()
+#endif
+#endif
+	}
+
+	var cameraList: some View {
+#if os(macOS)
+		// No internal scrolling: the host (a grouped form, an inspector) already
+		// scrolls, and there is no focus effect needing room to overflow.
+		VStack(spacing: 8) {
+			ForEach(cameras) { camera in
+				cameraRow(camera)
+			}
+			manualURLField
+		}
+#else
+		ScrollView {
+			VStack(spacing: 16) {
+				ForEach(cameras) { camera in
+					cameraRow(camera)
+				}
+				manualURLField
+			}
+			// `.card` grows and lifts the focused row (~1.1×) and the focus
+			// effect draws outside the scroll view, so reserve a margin all
+			// around for it to expand into instead of past the panel edge.
+			.padding(.horizontal, 30)
+			.padding(.vertical, 10)
+		}
+		// Fill the height the panel imposes (so the cameras tab matches the
+		// other tabs); cap it when shown unconstrained (e.g. previews).
+		.frame(maxHeight: .infinity)
+#endif
+	}
+
+	@ViewBuilder
+	func cameraRow(_ camera: ONVIFCamera) -> some View {
+		Button {
+			connect(to: camera)
+		} label: {
+			HStack(spacing: 12) {
+				Image(systemName: "web.camera")
+					.foregroundStyle(Color.panelAccent)
+				VStack(alignment: .leading, spacing: 2) {
+					// The camera's configured hostname, once GetHostname has
+					// answered; the discovery scope name until then.
+					Text(hostnames[camera.id] ?? camera.name)
+						.font(.subheadline.weight(.semibold))
+					Text(camera.ipAddress)
+						.font(.caption)
+						.foregroundStyle(.secondary)
+				}
+				Spacer(minLength: 0)
+				if connectingCameraID == camera.id {
+					ProgressView()
+				} else if isCurrent(camera) {
+					Image(systemName: "checkmark")
+						.font(.caption.weight(.semibold))
+						.foregroundStyle(Color.panelAccent)
+				}
+			}
+			.padding(12)
+#if !os(tvOS)
+			.background(
+				RoundedRectangle(cornerRadius: 10, style: .continuous)
+					.fill(Color.primary.opacity(0.06))
+			)
+#endif
+			.contentShape(Rectangle())
+		}
+#if os(tvOS)
+		.buttonStyle(.card)
+#else
+		.buttonStyle(.plain)
+#endif
+		.disabled(connectingCameraID != nil)
 	}
 }
 
