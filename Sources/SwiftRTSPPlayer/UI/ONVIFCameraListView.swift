@@ -264,22 +264,44 @@ private extension ONVIFCameraListView {
 		.pickerStyle(.menu)
 	}
 
+	private var usernameLabel: String {
+		String(localized: "cameras.username", bundle: .module)
+	}
+
+	private var passwordLabel: String {
+		String(localized: "cameras.password", bundle: .module)
+	}
+
 	var manualCredentialFields: some View {
 #if os(macOS)
-		// One row per field, without a forced style: the host is typically a
-		// grouped Form (inspector) that draws its own native rows — side by
-		// side, the fields become unreadable in a narrow panel.
+		// One row per field: side by side they become unreadable in a narrow
+		// panel. A field's title is a *label*, and SwiftUI places it differently
+		// depending on the host — inside the field as a placeholder when there's
+		// no label column, in the leading column when there is one (a Form, an
+		// inspector). Passing the title as `prompt` too keeps the field
+		// self-describing either way, as `manualURLField` already does.
 		VStack(spacing: 10) {
-			TextField(String(localized: "cameras.username", bundle: .module), text: $username)
-				.textContentType(.username)
-			SecureField(String(localized: "cameras.password", bundle: .module), text: $password)
-				.textContentType(.password)
+			TextField(
+				usernameLabel,
+				text: $username,
+				prompt: Text(verbatim: usernameLabel)
+			)
+			.textContentType(.username)
+			SecureField(
+				passwordLabel,
+				text: $password,
+				prompt: Text(verbatim: passwordLabel)
+			)
+			.textContentType(.password)
 		}
+		// `.grouped` forms default their fields to a borderless style, which
+		// leaves nothing visible to click; the other hosts already draw a border.
+		.textFieldStyle(.roundedBorder)
 #else
 		HStack(spacing: 10) {
-			TextField(String(localized: "cameras.username", bundle: .module), text: $username)
+			TextField(usernameLabel, text: $username)
 				.textContentType(.username)
-			SecureField(String(localized: "cameras.password", bundle: .module), text: $password)
+			SecureField(passwordLabel, text: $password)
 				.textContentType(.password)
 		}
 #if !os(tvOS)
@@ -306,6 +328,7 @@ private extension ONVIFCameraListView {
 			prompt: Text(verbatim: String(localized: "cameras.manualURL.placeholder", bundle: .module))
 		)
 		.textContentType(.URL)
+		.textFieldStyle(.roundedBorder)
 		.onSubmit(connectToManualURL)
 #else
 		TextField(String(localized: "cameras.manualURL.placeholder", bundle: .module), text: $manualURL)
