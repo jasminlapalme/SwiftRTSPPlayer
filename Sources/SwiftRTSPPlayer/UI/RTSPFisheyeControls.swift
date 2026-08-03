@@ -31,8 +31,10 @@ public struct RTSPFisheyeControls: View {
 #endif
 
 	/// - Parameters:
-	///   - fisheyeSensivity: step size of one tvOS remote press (divided by 5 in
-	///     fine mode). Unused on the other platforms, where the sliders are absolute.
+	///   - fisheyeSensivity: step size of one tvOS remote press (divided by
+	///     `fineStepDivisor` in fine mode) and, on macOS, of one click of the
+	///     row's stepper — which always takes a fine step. Unused on iOS and
+	///     visionOS, where the sliders and fields are absolute.
 	///   - isFineMode: tvOS only — shrinks the adjustment step for precise moves.
 	public init(
 		fisheyeCorrection: Binding<FisheyeCorrection>,
@@ -102,7 +104,12 @@ public struct RTSPFisheyeControls: View {
 #else
 		Grid(horizontalSpacing: 16, verticalSpacing: 18) {
 			ForEach(rows, id: \.key) { row in
-				nativeSliderRow(label: label(row.key), value: row.value, range: fisheyeRange)
+				nativeSliderRow(
+					label: label(row.key),
+					value: row.value,
+					range: fisheyeRange,
+					sensivity: fisheyeSensivity
+				)
 			}
 		}
 		.padding()

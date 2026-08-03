@@ -41,14 +41,13 @@ public struct RTSPTransformControls: View {
 		case scale, transX, transY, rotation
 	}
 	@FocusState private var focusedField: Field?
-
-	/// Snap points the rotation row jumps between on tvOS (outside fine mode).
-	private static let rotationTicks: [CGFloat] = [-180, -90, 0, 90, 180]
 #endif
 
 	/// - Parameters:
-	///   - sensivities: step size of one tvOS remote press (divided by 5 in fine
-	///     mode). Unused on the other platforms, where the sliders are absolute.
+	///   - sensivities: step size of one tvOS remote press (divided by
+	///     `fineStepDivisor` in fine mode) and, on macOS, of one click of the
+	///     row's stepper — which always takes a fine step. Unused on iOS and
+	///     visionOS, where the sliders and fields are absolute.
 	///   - isFineMode: tvOS only — shrinks the adjustment step for precise moves.
 	public init(
 		scale: Binding<CGFloat>,
@@ -122,7 +121,7 @@ public struct RTSPTransformControls: View {
 				value: $rotation,
 				range: rotationRange,
 				sensivity: rotationSensivity,
-				ticks: Self.rotationTicks,
+				ticks: tickValues(in: rotationRange, spacing: rotationTickSpacing),
 				isFineMode: isFineMode,
 				focusedField: $focusedField
 			)
@@ -132,22 +131,27 @@ public struct RTSPTransformControls: View {
 			nativeSliderRow(
 				label: String(localized: "transform.scale", bundle: .module),
 				value: $scale,
-				range: scaleRange
+				range: scaleRange,
+				sensivity: scaleSensivity
 			)
 			nativeSliderRow(
 				label: String(localized: "transform.translateX", bundle: .module),
 				value: translationX,
-				range: translationXRange
+				range: translationXRange,
+				sensivity: translationXSensivity
 			)
 			nativeSliderRow(
 				label: String(localized: "transform.translateY", bundle: .module),
 				value: translationY,
-				range: translationYRange
+				range: translationYRange,
+				sensivity: translationYSensivity
 			)
 			nativeSliderRow(
 				label: String(localized: "transform.rotation", bundle: .module),
 				value: $rotation,
-				range: rotationRange
+				range: rotationRange,
+				sensivity: rotationSensivity,
+				tickSpacing: rotationTickSpacing
 			)
 		}
 		.padding()
