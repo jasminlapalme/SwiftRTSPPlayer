@@ -18,6 +18,15 @@ let fineStepDivisor: CGFloat = 5.0
 /// range. tvOS snaps to them; macOS draws them as tick marks.
 let rotationTickSpacing: CGFloat = 90
 
+/// Opens a row's range up to a value sitting outside it. Dragging the video pans
+/// as far as it takes to reach the image's edges, which past a certain zoom is
+/// further than the configured translation range; the row has to carry that
+/// value rather than clamp it back the moment the slider is touched.
+func widenedRange(_ range: ClosedRange<CGFloat>, toInclude value: CGFloat) -> ClosedRange<CGFloat> {
+	guard value.isFinite else { return range }
+	return min(range.lowerBound, value)...max(range.upperBound, value)
+}
+
 /// The multiples of `spacing` that fall inside `range`, used as the rotation
 /// row's marks on tvOS.
 func tickValues(in range: ClosedRange<CGFloat>, spacing: CGFloat) -> [CGFloat] {
@@ -127,9 +136,10 @@ func nativeSliderRow(
 	sensivity: CGFloat,
 	tickSpacing: CGFloat? = nil
 ) -> some View {
+	let rowRange = widenedRange(range, toInclude: value.wrappedValue)
 	let clamped = Binding(
 		get: { value.wrappedValue },
-		set: { value.wrappedValue = min(max($0, range.lowerBound), range.upperBound) }
+		set: { value.wrappedValue = min(max($0, rowRange.lowerBound), rowRange.upperBound) }
 	)
 	GridRow {
 		// Truncate rather than wrap: the slider now holds a minimum width, so in a
@@ -145,10 +155,10 @@ func nativeSliderRow(
 		// and so the enclosing `Grid` — take all the width on offer, which an
 		// `NSViewRepresentable` won't do on its own since it reports a finite
 		// intrinsic width. `minWidth` is the floor that keeps the ticks readable.
-		TickedSlider(value: clamped, range: range, tickSpacing: tickSpacing)
+		TickedSlider(value: clamped, range: rowRange, tickSpacing: tickSpacing)
 			.frame(minWidth: TickedSlider.minimumWidth, maxWidth: .infinity)
 #else
-		Slider(value: value, in: range)
+		Slider(value: value, in: rowRange)
 #endif
 
 		TextField(
@@ -170,7 +180,7 @@ func nativeSliderRow(
 #endif
 
 #if os(macOS)
-		Stepper(label, value: clamped, in: range, step: sensivity / fineStepDivisor)
+		Stepper(label, value: clamped, in: rowRange, step: sensivity / fineStepDivisor)
 			.labelsHidden()
 #endif
 	}

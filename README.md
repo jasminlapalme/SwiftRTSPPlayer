@@ -62,6 +62,29 @@ RTSPPlayerView(
 
 `FisheyeCorrection` parameterizes a polynomial undistortion in `θ = atan(r)`, suited to wide-angle lenses (~110–130° FOV). Use `FisheyeCorrection.identity` to disable the correction.
 
+### Direct manipulation
+
+Pass the transforms as bindings instead of values and the viewer can adjust the framing on the video itself — the gestures write back through the bindings, so a `RTSPTransformControlPanel` driven by the same state follows along:
+
+```swift
+RTSPPlayerView(
+    url: url,
+    rotation: $rotation,
+    scale: $scale,
+    translation: $translation
+)
+```
+
+| Gesture | macOS | iOS / visionOS |
+| --- | --- | --- |
+| Move | click-drag, or two-finger scroll | one-finger drag |
+| Zoom | trackpad pinch, or Option-scroll | pinch |
+| Rotate | trackpad two-finger rotate | two-finger rotate |
+
+Zooming keeps the detail under the pointer (or under the pinch) in place. `interaction:` selects which gestures are accepted — `.all` by default, or any combination of `.pan`, `.zoom` and `.rotate`. tvOS has no pointer, so the gestures are unavailable there and the panel remains the way to adjust the framing.
+
+`transformLimits:` bounds how far the gestures may go. Its translation ranges are a *floor*, not a ceiling: whenever the image hangs outside the view — zoomed in, or turned — the range opens up to half the overhang, which is exactly what it takes to bring any edge of the image into view. The rotation of the image is accounted for, so the room is right at any angle. Below that the configured range still applies, so an image smaller than its view can be pushed around as freely as before. The control panel's sliders keep their own (fixed) ranges but widen to carry a value a gesture has taken further, rather than clamping it back when touched.
+
 ### Control panel
 
 `RTSPTransformControlPanel` exposes the transforms — and optionally fisheye correction and ONVIF camera selection — through a tabbed panel, intended as an `.overlay`. On iOS and macOS the tabs use native controls (sliders with numeric fields, segmented tabs); on tvOS they use a focus-driven, swipe-based UI suited to the Siri remote:

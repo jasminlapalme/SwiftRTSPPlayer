@@ -13,6 +13,9 @@ struct RTSPPlatformPlayerView: UIViewRepresentable {
 	let scale: CGFloat
 	let translation: CGPoint
 	let fisheyeCorrection: FisheyeCorrection
+	let interaction: RTSPVideoInteraction
+	let transformLimits: RTSPTransformLimits
+	let onTransformChange: (RTSPTransform) -> Void
 	@Binding var playbackState: RTSPPlaybackState
 
 	func makeCoordinator() -> RTSPPlayerCoordinator {
@@ -40,6 +43,7 @@ struct RTSPPlatformPlayerView: UIViewRepresentable {
 
 	static func dismantleUIView(_ uiView: RTSPMetalView, coordinator: RTSPPlayerCoordinator) {
 		coordinator.stopObservingPlaybackState()
+		uiView.onTransformChange = nil
 		uiView.stop()
 	}
 
@@ -48,6 +52,9 @@ struct RTSPPlatformPlayerView: UIViewRepresentable {
 		view.scale = scale
 		view.translation = translation
 		view.fisheyeCorrection = fisheyeCorrection
+		view.interaction = interaction
+		view.transformLimits = transformLimits
+		view.onTransformChange = onTransformChange
 	}
 }
 
@@ -59,6 +66,9 @@ struct RTSPPlatformPlayerView: NSViewRepresentable {
 	let scale: CGFloat
 	let translation: CGPoint
 	let fisheyeCorrection: FisheyeCorrection
+	let interaction: RTSPVideoInteraction
+	let transformLimits: RTSPTransformLimits
+	let onTransformChange: (RTSPTransform) -> Void
 	@Binding var playbackState: RTSPPlaybackState
 
 	func makeCoordinator() -> RTSPPlayerCoordinator {
@@ -86,6 +96,7 @@ struct RTSPPlatformPlayerView: NSViewRepresentable {
 
 	static func dismantleNSView(_ nsView: RTSPMetalView, coordinator: RTSPPlayerCoordinator) {
 		coordinator.stopObservingPlaybackState()
+		nsView.onTransformChange = nil
 		nsView.stop()
 	}
 
@@ -94,6 +105,9 @@ struct RTSPPlatformPlayerView: NSViewRepresentable {
 		view.scale = scale
 		view.translation = translation
 		view.fisheyeCorrection = fisheyeCorrection
+		view.interaction = interaction
+		view.transformLimits = transformLimits
+		view.onTransformChange = onTransformChange
 	}
 }
 

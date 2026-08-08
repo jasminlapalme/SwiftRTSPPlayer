@@ -47,11 +47,14 @@ struct ContentView: View {
 
 	var body: some View {
 		VStack {
+			// Bindings rather than plain values, so dragging, pinching and
+			// Option-scrolling on the video write back here — and the panel's
+			// sliders follow along.
 			RTSPPlayerView(
 				url: playbackURL,
-				rotation: rotation,
-				scale: echelle,
-				translation: translation,
+				rotation: $rotation,
+				scale: $echelle,
+				translation: $translation,
 				fisheyeCorrection: fisheye
 			)
 			.border(Color.blue)

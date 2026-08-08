@@ -60,6 +60,50 @@ public final class RTSPMetalView: RTSPPlatformView {
 	public var fisheyeCorrection: FisheyeCorrection = .identity {
 		didSet { renderer?.fisheyeCorrection = fisheyeCorrection }
 	}
+
+	// MARK: - Direct manipulation
+
+	/// Which gestures on the video adjust the transform. Empty by default: the
+	/// view only reports the changes, so a host that doesn't carry them back into
+	/// its own state would see the framing snap back on the next update.
+	public var interaction: RTSPVideoInteraction = []
+
+	/// How far those gestures may push the transform. The translation ranges are
+	/// a floor: zoomed in, `gestureLimits` opens them up to the image's edges.
+	public var transformLimits: RTSPTransformLimits = .default
+
+	/// What the gestures actually work against — the configured limits, told how
+	/// the image currently sits in the view. Read on each step of a gesture, so a
+	/// resize or a zoom is taken into account straight away.
+	var gestureLimits: RTSPTransformLimits {
+		var limits = transformLimits
+		limits.layout = RTSPContentLayout(fittedSize: fittedVideoSize, viewSize: bounds.size)
+		return limits
+	}
+
+	/// Called when a gesture changes the transform — never for a change the host
+	/// made itself by setting `scale`, `translation` or `rotation`.
+	public var onTransformChange: ((RTSPTransform) -> Void)?
+
+	/// The current framing as one value, the form gestures work in.
+	var currentTransform: RTSPTransform {
+		RTSPTransform(scale: scale, translation: translation, rotation: rotation)
+	}
+
+	/// Applies a gesture's result: the layer follows immediately, and the host
+	/// hears about it so its own state — and the control panel — stay in step.
+	func applyInteractiveTransform(_ transform: RTSPTransform) {
+		guard transform != currentTransform else { return }
+		rotation = transform.rotation
+		translation = transform.translation
+		scale = transform.scale
+		onTransformChange?(transform)
+	}
+
+#if !os(tvOS)
+	private var gestures: RTSPTransformGestureController?
+#endif
+
 	public var playbackStates: AsyncStream<RTSPPlaybackState> {
 		AsyncStream { continuation in
 			playbackStateContinuation = continuation
@@ -96,7 +140,22 @@ public final class RTSPMetalView: RTSPPlatformView {
 		#endif
 
 		metalLayer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+
+		#if !os(tvOS)
+		gestures = RTSPTransformGestureController(view: self)
+		#endif
 	}
+
+	#if os(macOS)
+	/// Scroll to pan, Option-scroll to zoom. Anything the gestures don't claim —
+	/// interaction turned off, or a stray zero-delta event — goes on up the
+	/// responder chain.
+	public override func scrollWheel(with event: NSEvent) {
+		if gestures?.handleScroll(event) != true {
+			super.scrollWheel(with: event)
+		}
+	}
+	#endif
 
 	// MARK: - Layout
 
@@ -216,22 +275,32 @@ public final class RTSPMetalView: RTSPPlatformView {
 
 	// MARK: - Metal layout
 
+	/// The video's size on screen at scale 1: fitted to the view, aspect kept.
+	private var fittedVideoSize: CGSize {
+		let videoSize = CGSize(width: videoWidth, height: videoHeight)
+		guard videoSize.width > 0, videoSize.height > 0 else { return .zero }
+		let fitScale = min(
+			bounds.width / videoSize.width,
+			bounds.height / videoSize.height
+		)
+		return CGSize(width: videoSize.width * fitScale, height: videoSize.height * fitScale)
+	}
+
 	private func updateMetalLayer() {
 
-		let viewSize = bounds.size
 		let videoSize = CGSize(width: videoWidth, height: videoHeight)
-
-		let fitScale = min(
-			viewSize.width / videoSize.width,
-			viewSize.height / videoSize.height
-		)
-
-		let finalScale = fitScale * scale
+		let fittedSize = fittedVideoSize
 
 		let finalSize = CGSize(
-			width: videoSize.width * finalScale,
-			height: videoSize.height * finalScale
+			width: fittedSize.width * scale,
+			height: fittedSize.height * scale
 		)
+
+		// The metal layer is a hand-made sublayer, so every geometry change would
+		// otherwise run CoreAnimation's default quarter-second implicit animation
+		// — which under a drag shows up as the image trailing the pointer.
+		CATransaction.begin()
+		CATransaction.setDisableActions(true)
 
 		metalLayer.bounds = CGRect(origin: .zero, size: finalSize)
 		metalLayer.position = CGPoint(x: bounds.midX, y: bounds.midY)
@@ -242,6 +311,8 @@ public final class RTSPMetalView: RTSPPlatformView {
 		)
 
 		applyTransform()
+
+		CATransaction.commit()
 	}
 
 	private func applyTransform() {
@@ -262,7 +333,10 @@ public final class RTSPMetalView: RTSPPlatformView {
 		transform = CATransform3DTranslate(transform, translation.x, translationY, 0)
 		transform = CATransform3DRotate(transform, angle, 0, 0, 1)
 
+		CATransaction.begin()
+		CATransaction.setDisableActions(true)
 		metalLayer.transform = transform
+		CATransaction.commit()
 	}
 
 	private func setPlaybackState(_ state: RTSPPlaybackState) {
