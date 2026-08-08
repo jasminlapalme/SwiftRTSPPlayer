@@ -7,7 +7,7 @@ Hardware-accelerated RTSP player for iOS, macOS, tvOS and visionOS, distributed 
 - iOS 18+
 - macOS 15+
 - tvOS 18+
-- visionOS 1+
+- visionOS 2+
 
 Swift 6.3 / Swift Tools 6.3, with `swiftLanguageModes: [.v6]`.
 
