@@ -48,32 +48,37 @@ struct ContentView: View {
 
 ### Transforms
 
-`RTSPPlayerView` accepts rotation, scale, translation and a fisheye correction model:
+`RTSPPlayerView` accepts rotation, scale, translation and a fisheye correction model. Pass the three transforms as bindings and the view owns them jointly with you: gestures on the video write back through them, and so does the control panel.
 
 ```swift
-RTSPPlayerView(
-    url: url,
-    rotation: .pi / 2,
-    scale: 1.2,
-    translation: CGPoint(x: 0.05, y: 0),
-    fisheyeCorrection: FisheyeCorrection(k1v: 0.3)
-)
+struct PlayerScreen: View {
+    @State private var rotation: CGFloat = 0
+    @State private var scale: CGFloat = 1.0
+    @State private var translation: CGPoint = .zero
+
+    var body: some View {
+        RTSPPlayerView(
+            url: url,
+            rotation: $rotation,
+            scale: $scale,
+            translation: $translation,
+            fisheyeCorrection: FisheyeCorrection(k1v: 0.3)
+        )
+    }
+}
+```
+
+Rotation is in degrees clockwise, translation in points from the centre of the view, and scale multiplies the size the video is fitted to. Passing plain values instead gives a fixed framing the viewer cannot move — gestures are off, since there would be nowhere to write the result:
+
+```swift
+RTSPPlayerView(url: url, rotation: 90, scale: 1.2, translation: CGPoint(x: 40, y: 0))
 ```
 
 `FisheyeCorrection` parameterizes a polynomial undistortion in `θ = atan(r)`, suited to wide-angle lenses (~110–130° FOV). Use `FisheyeCorrection.identity` to disable the correction.
 
 ### Direct manipulation
 
-Pass the transforms as bindings instead of values and the viewer can adjust the framing on the video itself — the gestures write back through the bindings, so a `RTSPTransformControlPanel` driven by the same state follows along:
-
-```swift
-RTSPPlayerView(
-    url: url,
-    rotation: $rotation,
-    scale: $scale,
-    translation: $translation
-)
-```
+With the transforms bound, the viewer adjusts the framing on the video itself:
 
 | Gesture | macOS | iOS / visionOS |
 | --- | --- | --- |
@@ -81,7 +86,19 @@ RTSPPlayerView(
 | Zoom | trackpad pinch, or Option-scroll | pinch |
 | Rotate | trackpad two-finger rotate | two-finger rotate |
 
-Zooming keeps the detail under the pointer (or under the pinch) in place. `interaction:` selects which gestures are accepted — `.all` by default, or any combination of `.pan`, `.zoom` and `.rotate`. tvOS has no pointer, so the gestures are unavailable there and the panel remains the way to adjust the framing.
+Zooming keeps the detail under the pointer (or under the pinch) in place. tvOS has no pointer, so the gestures are unavailable there and the panel remains the way to adjust the framing.
+
+`interaction:` selects which gestures are accepted — `.all` by default, or any combination of `.pan`, `.zoom` and `.rotate`:
+
+```swift
+RTSPPlayerView(
+    url: url,
+    rotation: $rotation,
+    scale: $scale,
+    translation: $translation,
+    interaction: [.pan, .zoom]
+)
+```
 
 `transformLimits:` bounds how far the gestures may go. Its translation ranges are a *floor*, not a ceiling: whenever the image hangs outside the view — zoomed in, or turned — the range opens up to half the overhang, which is exactly what it takes to bring any edge of the image into view. The rotation of the image is accounted for, so the room is right at any angle. Below that the configured range still applies, so an image smaller than its view can be pushed around as freely as before. The control panel's sliders keep their own (fixed) ranges but widen to carry a value a gesture has taken further, rather than clamping it back when touched.
 
@@ -90,7 +107,7 @@ Zooming keeps the detail under the pointer (or under the pinch) in place. `inter
 `RTSPTransformControlPanel` exposes the transforms — and optionally fisheye correction and ONVIF camera selection — through a tabbed panel, intended as an `.overlay`. On iOS and macOS the tabs use native controls (sliders with numeric fields, segmented tabs); on tvOS they use a focus-driven, swipe-based UI suited to the Siri remote:
 
 ```swift
-RTSPPlayerView(url: url, rotation: rotation, scale: scale, translation: translation, fisheyeCorrection: fisheye)
+RTSPPlayerView(url: url, rotation: $rotation, scale: $scale, translation: $translation, fisheyeCorrection: fisheye)
     .overlay(alignment: .bottom) {
         RTSPTransformControlPanel(
             scale: $scale,

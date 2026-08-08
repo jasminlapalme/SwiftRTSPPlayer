@@ -22,7 +22,7 @@ import AppKit
 /// compose their own panel instead.
 ///
 /// ```swift
-/// RTSPPlayerView(url: url, rotation: rotation, scale: scale, translation: translation)
+/// RTSPPlayerView(url: url, rotation: $rotation, scale: $scale, translation: $translation)
 ///     .overlay(alignment: .bottom) {
 ///         RTSPTransformControlPanel(
 ///             scale: $scale,
