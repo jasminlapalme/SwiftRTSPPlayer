@@ -129,6 +129,17 @@ The three tabs are also public views, for apps that want to compose their own pa
 
 `RTSPPlaybackStatusOverlay` provides visual feedback on the connection state (`stopped`, `connecting`, `playing`, `failed`). The overlay is attached automatically by `RTSPPlayerView`.
 
+An app that presents its video its own way can replace that banner with `.rtspStatusOverlay`, which applies to every player below it in the hierarchy:
+
+```swift
+CameraGrid()
+    .rtspStatusOverlay { state in
+        StatusBanner(state: state)
+    }
+```
+
+The player keeps owning the state and hands it to the closure. The view is laid over the whole player, so it picks its own wording, style, alignment — and any transform, which is what a host that rotates its whole interface needs. Return `EmptyView()` for a state that should show nothing.
+
 ## Architecture
 
 ```
