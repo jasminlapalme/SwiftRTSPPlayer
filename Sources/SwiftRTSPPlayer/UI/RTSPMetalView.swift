@@ -28,7 +28,11 @@ public final class RTSPMetalView: RTSPPlatformView {
 	// MARK: - Metal
 
 	private let metalLayer = CAMetalLayer()
-	private var renderer: MetalVideoRenderer?
+	private let renderer = MetalVideoRenderer()
+	/// Kept so a resize or a gesture redraws without waiting for the next
+	/// frame: the layer carries no geometry any more.
+	private var lastPixelBuffer: CVPixelBuffer?
+	private var redrawScheduled = false
 
 	// MARK: - Pipeline
 
@@ -54,12 +58,10 @@ public final class RTSPMetalView: RTSPPlatformView {
 
 	// MARK: - Transform
 
-	public var rotation: CGFloat = 0 { didSet { applyTransform() } }
-	public var scale: CGFloat = 1.0 { didSet { updateMetalLayer() } }
-	public var translation: CGPoint = .zero { didSet { applyTransform() } }
-	public var fisheyeCorrection: FisheyeCorrection = .identity {
-		didSet { renderer?.fisheyeCorrection = fisheyeCorrection }
-	}
+	public var rotation: CGFloat = 0 { didSet { redraw() } }
+	public var scale: CGFloat = 1.0 { didSet { redraw() } }
+	public var translation: CGPoint = .zero { didSet { redraw() } }
+	public var fisheyeCorrection: FisheyeCorrection = .identity { didSet { redraw() } }
 
 	// MARK: - Direct manipulation
 
@@ -140,6 +142,12 @@ public final class RTSPMetalView: RTSPPlatformView {
 		#endif
 
 		metalLayer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
+		metalLayer.device = renderer?.device
+		metalLayer.pixelFormat = .bgra8Unorm
+		metalLayer.framebufferOnly = true
+		#if os(macOS)
+		metalLayer.displaySyncEnabled = true  // vsync on tvOS
+		#endif
 
 		#if !os(tvOS)
 		gestures = RTSPTransformGestureController(view: self)
@@ -220,10 +228,6 @@ public final class RTSPMetalView: RTSPPlatformView {
 		hasRenderedFrame = false
 		setPlaybackState(.connecting)
 
-		let renderer = MetalVideoRenderer(layer: metalLayer)
-		renderer?.fisheyeCorrection = fisheyeCorrection
-		self.renderer = renderer
-
 		let pipeline = RTSPPipeline()
 		self.pipeline = pipeline
 
@@ -238,7 +242,7 @@ public final class RTSPMetalView: RTSPPlatformView {
 
 				for try await frame in stream {
 					if Task.isCancelled { break }
-					renderer?.render(pixelBuffer: frame.pixelBuffer)
+					self.display(frame.pixelBuffer)
 					if !self.hasRenderedFrame {
 						self.hasRenderedFrame = true
 						self.setPlaybackState(.playing)
@@ -273,7 +277,16 @@ public final class RTSPMetalView: RTSPPlatformView {
 		connect(url: url)
 	}
 
-	// MARK: - Metal layout
+	private func setPlaybackState(_ state: RTSPPlaybackState) {
+		guard playbackState != state else { return }
+		playbackState = state
+		playbackStateContinuation?.yield(state)
+	}
+}
+
+// MARK: - Metal layout and drawing
+
+extension RTSPMetalView {
 
 	/// The video's size on screen at scale 1: fitted to the view, aspect kept.
 	private var fittedVideoSize: CGSize {
@@ -286,62 +299,102 @@ public final class RTSPMetalView: RTSPPlatformView {
 		return CGSize(width: videoSize.width * fitScale, height: videoSize.height * fitScale)
 	}
 
-	private func updateMetalLayer() {
-
-		let videoSize = CGSize(width: videoWidth, height: videoHeight)
-		let fittedSize = fittedVideoSize
-
-		let finalSize = CGSize(
-			width: fittedSize.width * scale,
-			height: fittedSize.height * scale
-		)
-
-		// The metal layer is a hand-made sublayer, so every geometry change would
-		// otherwise run CoreAnimation's default quarter-second implicit animation
-		// — which under a drag shows up as the image trailing the pointer.
-		CATransaction.begin()
-		CATransaction.setDisableActions(true)
-
-		metalLayer.bounds = CGRect(origin: .zero, size: finalSize)
-		metalLayer.position = CGPoint(x: bounds.midX, y: bounds.midY)
-
-		metalLayer.drawableSize = CGSize(
-			width: videoSize.width,
-			height: videoSize.height
-		)
-
-		applyTransform()
-
-		CATransaction.commit()
-	}
-
-	private func applyTransform() {
-		let rad = rotation * .pi / 180
-
-		// L'axe Y d'AppKit pointe vers le haut (UIKit : vers le bas). On inverse
-		// la translation verticale et le sens de rotation pour qu'une même
-		// configuration produise le même cadrage que sur tvOS/iOS (la référence).
+	/// Pixels per point of the screen the view is on.
+	private var backingScale: CGFloat {
 		#if os(macOS)
-		let translationY = -translation.y
-		let angle = -rad
+		return window?.backingScaleFactor ?? layer?.contentsScale ?? 1
 		#else
-		let translationY = translation.y
-		let angle = rad
+		return layer.contentsScale
 		#endif
-
-		var transform = CATransform3DIdentity
-		transform = CATransform3DTranslate(transform, translation.x, translationY, 0)
-		transform = CATransform3DRotate(transform, angle, 0, 0, 1)
-
-		CATransaction.begin()
-		CATransaction.setDisableActions(true)
-		metalLayer.transform = transform
-		CATransaction.commit()
 	}
 
-	private func setPlaybackState(_ state: RTSPPlaybackState) {
-		guard playbackState != state else { return }
-		playbackState = state
-		playbackStateContinuation?.yield(state)
+	/// The layer just covers the view at native resolution; the framing is
+	/// applied while drawing, as a broadcast composes it.
+	private func updateMetalLayer() {
+		let scaleFactor = backingScale
+
+		// A hand-made sublayer animates its geometry implicitly, which under a
+		// drag shows up as the image trailing the pointer.
+		CATransaction.begin()
+		CATransaction.setDisableActions(true)
+
+		metalLayer.frame = bounds
+		metalLayer.contentsScale = scaleFactor
+		let drawableSize = CGSize(
+			width: (bounds.width * scaleFactor).rounded(),
+			height: (bounds.height * scaleFactor).rounded()
+		)
+		if drawableSize.width >= 1, drawableSize.height >= 1, metalLayer.drawableSize != drawableSize {
+			metalLayer.drawableSize = drawableSize
+		}
+
+		CATransaction.commit()
+
+		redraw()
+	}
+
+	#if os(macOS)
+	/// A screen of a different density changes what a point is worth in pixels.
+	public override func viewDidChangeBackingProperties() {
+		super.viewDidChangeBackingProperties()
+		updateMetalLayer()
+	}
+	#endif
+
+	// MARK: - Drawing
+
+	/// Shows a newly decoded picture, and remembers it for later redraws.
+	private func display(_ pixelBuffer: CVPixelBuffer) {
+		lastPixelBuffer = pixelBuffer
+		let width = CVPixelBufferGetWidth(pixelBuffer)
+		let height = CVPixelBufferGetHeight(pixelBuffer)
+		if width > 0, height > 0, width != videoWidth || height != videoHeight {
+			videoWidth = width
+			videoHeight = height
+			// The fitted size feeds the gesture limits, so it follows the camera.
+			updateMetalLayer()
+			return
+		}
+		redraw()
+	}
+
+	/// At most one redraw per run loop turn: a gesture sets rotation, translation
+	/// and scale in a row, and `nextDrawable()` blocks once the queue is full.
+	private func redraw() {
+		guard !redrawScheduled else { return }
+		redrawScheduled = true
+		Task { @MainActor [weak self] in
+			guard let self else { return }
+			self.redrawScheduled = false
+			self.drawCurrentPicture()
+		}
+	}
+
+	/// Draws the current picture with the current framing.
+	private func drawCurrentPicture() {
+		guard let renderer, let pixelBuffer = lastPixelBuffer else { return }
+		let size = metalLayer.drawableSize
+		guard size.width >= 1, size.height >= 1,
+			let drawable = metalLayer.nextDrawable(),
+			let commandBuffer = renderer.makeCommandBuffer()
+		else { return }
+
+		let layer = RTSPCompositionLayer(
+			pixelBuffer: pixelBuffer,
+			frame: CGRect(origin: .zero, size: size),
+			scale: scale,
+			// The view works in points, a composition in fractions of its frame.
+			translation: CGPoint(
+				x: bounds.width > 0 ? translation.x / bounds.width : 0,
+				y: bounds.height > 0 ? translation.y / bounds.height : 0
+			),
+			rotation: rotation,
+			fisheyeCorrection: fisheyeCorrection
+		)
+
+		renderer.draw([layer], into: drawable.texture, with: commandBuffer)
+		commandBuffer.present(drawable)
+		commandBuffer.commit()
+		renderer.flushTextureCache()
 	}
 }

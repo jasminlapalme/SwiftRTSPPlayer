@@ -24,6 +24,21 @@ vertex VertexOut vertex_passthrough(uint vid [[vertex_id]]) {
 		return out;
 }
 
+// The same quad, placed by a caller-supplied matrix: an offscreen composition
+// has no layer tree to carry the framing.
+vertex VertexOut vertex_transformed(
+																		uint vid [[vertex_id]],
+																		constant float4x4& transform [[buffer(0)]]
+																		) {
+		const float2 pos[4]  = {{-1,-1},{1,-1},{-1,1},{1,1}};
+		const float2 uvs[4]  = {{ 0, 1},{1, 1},{ 0,0},{1,0}};
+
+		VertexOut out;
+		out.position = transform * float4(pos[vid], 0, 1);
+		out.texCoord = uvs[vid];
+		return out;
+}
+
 // OpenCV-style fisheye undistortion: polynomial in θ = atan(r), applied as a
 // multiplicative factor on r so all coefficients zero leaves uv unchanged.
 // Aspect ratio is compensated so the correction is truly radial.
