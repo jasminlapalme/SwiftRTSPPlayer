@@ -142,6 +142,39 @@ CameraGrid()
 
 The player keeps owning the state and hands it to the closure. The view is laid over the whole player, so it picks its own wording, style, alignment — and any transform, which is what a host that rotates its whole interface needs. Return `EmptyView()` for a state that should show nothing.
 
+### Offscreen composition
+
+`RTSPCompositor` draws several streams into one `CVPixelBuffer` instead of a view — the mosaic an app shows on screen, in the form an encoder takes. It needs no view at all: `RTSPPipeline` yields the decoded frames for a URL, and the compositor places them.
+
+```swift
+let compositor = RTSPCompositor(width: 1920, height: 1080)
+
+let pipeline = RTSPPipeline()
+for try await frame in await pipeline.frames(url: url) {
+    latest[camera.id] = frame
+}
+```
+
+```swift
+let layers = cameras.map { camera in
+    RTSPCompositionLayer(
+        pixelBuffer: latest[camera.id]?.pixelBuffer,
+        frame: camera.tile,
+        scale: camera.scale,
+        translation: camera.translation,
+        rotation: camera.rotation,
+        fisheyeCorrection: camera.fisheye
+    )
+}
+let composed = await compositor?.render(layers: layers, time: time)
+```
+
+`frame` is the destination inside the output, in pixels with a top-left origin. Layers are drawn in order, the last one on top, and anywhere no picture reaches stays black. A layer whose `pixelBuffer` is `nil` — a camera still connecting — keeps its place rather than shifting the others.
+
+The framing fields mean what they do on `RTSPPlayerView`, with one difference: `translation` is a fraction of the layer's own `frame` rather than points, so a framing holds at any output resolution. The screen and the composition go through the same renderer, so what you encode is what a player would show.
+
+The result is BGRA, which `VTCompressionSession` and the usual RTMP stacks accept directly. Output dimensions are rounded up to even numbers, which H.264 requires.
+
 ## Architecture
 
 ```
@@ -149,7 +182,7 @@ RTSP URL
   → RTSPDemuxer (actor)        — FFmpeg: connects, extracts SPS/PPS + Annex-B frames
   → VideoToolboxDecoder         — VTDecompressionSession: H.264 → CVPixelBuffer (NV12)
   → DecodedFrame                — (CVPixelBuffer, PTS)
-  → MetalVideoRenderer          — CVMetalTextureCache zero-copy → Metal → CAMetalLayer
+  → MetalVideoRenderer          — CVMetalTextureCache zero-copy → Metal → a drawable, or a CVPixelBuffer
 ```
 
 `RTSPPipeline` (actor) orchestrates demuxer and decoder, bridges their `AsyncStream`s, and handles reconnection with exponential backoff plus cancellation cleanup.
@@ -159,6 +192,8 @@ Notable details:
 - The demuxer converts Annex-B (MPEG-TS start codes) to AVCC (length-prefixed) for VideoToolbox.
 - NALU filtering keeps only IDR (type 5) and non-IDR (type 1) slices and drops leading P-frames until an IDR is seen, avoiding decoder corruption on attach.
 - The Metal fragment shader performs limited-range YUV→RGB conversion using BT.709 coefficients.
+- `MetalVideoRenderer` places each picture from a matrix rather than a layer transform, so `RTSPMetalView` and `RTSPCompositor` share one implementation of the framing — and one that behaves the same on AppKit, whose y axis points the other way.
+- Xcode compiles the package's shaders into its bundle. SwiftPM has no Metal build rule, so the package also ships the shader source and the renderer compiles it at launch when no compiled library is found.
 
 ## Demo
 
