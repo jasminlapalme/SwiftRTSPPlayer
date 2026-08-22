@@ -44,7 +44,9 @@ let package = Package(
 		.target(
 			name: "SwiftRTSPPlayer",
 			dependencies: ["FFmpeg"],
-			resources: [.process("Resources")],
+			// The shaders also ship as source: SwiftPM has no Metal rule, so the
+			// renderer compiles them at launch. See MetalVideoRenderer.
+			resources: [.process("Resources"), .process("Shaders")],
 			linkerSettings: [
 				// Kept for the `static` flavour of FFmpeg.xcframework — the
 				// .a archives reference symbols from these system libraries

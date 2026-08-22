@@ -90,8 +90,9 @@ public struct RTSPComposedFrame: @unchecked Sendable {
 /// The output is BGRA, which VideoToolbox and the usual RTMP stacks accept.
 public actor RTSPCompositor {
 
-	public let width: Int
-	public let height: Int
+	// Fixed for the compositor's lifetime, so readable without awaiting it.
+	public nonisolated let width: Int
+	public nonisolated let height: Int
 
 	private let renderer: MetalVideoRenderer
 	private let pixelBufferPool: CVPixelBufferPool
