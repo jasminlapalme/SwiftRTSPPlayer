@@ -126,7 +126,7 @@ public actor RTSPCompositor {
 
 	/// Renders `layers`, last one on top. `nil` only when GPU resources are
 	/// unavailable.
-	public func render(layers: [RTSPCompositionLayer], time: CMTime) -> RTSPComposedFrame? {
+	public func render(layers: [RTSPCompositionLayer], time: CMTime) async -> RTSPComposedFrame? {
 		var pixelBuffer: CVPixelBuffer?
 		guard CVPixelBufferPoolCreatePixelBuffer(nil, pixelBufferPool, &pixelBuffer) == kCVReturnSuccess,
 			let pixelBuffer,
@@ -135,9 +135,12 @@ public actor RTSPCompositor {
 		else { return nil }
 
 		renderer.draw(layers, into: target, with: commandBuffer)
-		commandBuffer.commit()
-		// The buffer goes straight to an encoder: the pixels must be final.
-		commandBuffer.waitUntilCompleted()
+		// The buffer goes straight to an encoder, so the pixels must be final —
+		// awaited rather than waited on, which would hold a cooperative thread.
+		await withCheckedContinuation { continuation in
+			commandBuffer.addCompletedHandler { _ in continuation.resume() }
+			commandBuffer.commit()
+		}
 		renderer.flushTextureCache()
 
 		return RTSPComposedFrame(pixelBuffer: pixelBuffer, time: time)
