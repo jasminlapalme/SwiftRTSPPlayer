@@ -12,9 +12,6 @@ import AppKit
 import UIKit
 #endif
 import MetalKit
-import os
-
-private let log = Logger(subsystem: "SwiftRTSPPlayer", category: "RTSPMetalView")
 
 #if os(macOS)
 public typealias RTSPPlatformView = NSView
@@ -37,19 +34,10 @@ public final class RTSPMetalView: RTSPPlatformView {
 	// MARK: - Pipeline
 
 	private var task: Task<Void, Never>?
-	private var pipeline: RTSPPipeline?
-	private var shouldReconnect = false
-	private var hasRenderedFrame = false
+	private var source: RTSPStreamSource?
 	private var playbackState: RTSPPlaybackState = .stopped
 	private var playbackStateContinuation: AsyncStream<RTSPPlaybackState>.Continuation?
 	private var holdsIdleTimer = false
-
-	// MARK: - Reconnection
-
-	// Fixed cadence — surveillance cameras can be offline for arbitrary
-	// stretches (network reboot, power blip). Keep retrying at a steady
-	// interval rather than backing off exponentially and giving up.
-	private static let reconnectDelay: TimeInterval = 5.0
 
 	// MARK: - Video sizing
 
@@ -183,17 +171,40 @@ public final class RTSPMetalView: RTSPPlatformView {
 
 	public func play(url: URL) {
 		acquireIdleTimer()
-		connect(url: url)
+
+		// Await the previous run's teardown before claiming the shared
+		// CAMetalLayer, or the two streams visually overlap.
+		let previousTask = task
+		let previousSource = source
+		previousTask?.cancel()
+
+		let source = RTSPStreamSource(url: url)
+		self.source = source
+		setPlaybackState(.connecting)
+
+		task = Task { [weak self] in
+			await previousSource?.stop()
+			_ = await previousTask?.value
+			guard let self, !Task.isCancelled else { return }
+
+			for await event in await source.events() {
+				if Task.isCancelled { break }
+				switch event {
+				case .state(let state):
+					self.setPlaybackState(state)
+				case .picture(let frame):
+					self.display(frame.pixelBuffer)
+				}
+			}
+		}
 	}
 
 	public func stop() {
-		shouldReconnect = false
 		task?.cancel()
 		task = nil
-		let stoppedPipeline = pipeline
-		Task { await stoppedPipeline?.stop() }
-		self.pipeline = nil
-		hasRenderedFrame = false
+		let stoppedSource = source
+		source = nil
+		Task { await stoppedSource?.stop() }
 		releaseIdleTimer()
 		setPlaybackState(.stopped)
 	}
@@ -212,69 +223,6 @@ public final class RTSPMetalView: RTSPPlatformView {
 		holdsIdleTimer = false
 		IdleTimerCoordinator.release()
 		#endif
-	}
-
-	// MARK: - Connect / Reconnect
-
-	private func connect(url: URL) {
-		// Capture the previous run so the new task can await its full teardown
-		// before claiming the shared CAMetalLayer — otherwise the old and new
-		// renderers fight over nextDrawable() and the streams visually overlap.
-		let previousTask = task
-		let previousPipeline = pipeline
-		previousTask?.cancel()
-
-		shouldReconnect = true
-		hasRenderedFrame = false
-		setPlaybackState(.connecting)
-
-		let pipeline = RTSPPipeline()
-		self.pipeline = pipeline
-
-		task = Task { [weak self] in
-			await previousPipeline?.stop()
-			_ = await previousTask?.value
-
-			guard let self, !Task.isCancelled else { return }
-
-			do {
-				let stream = await pipeline.frames(url: url)
-
-				for try await frame in stream {
-					if Task.isCancelled { break }
-					self.display(frame.pixelBuffer)
-					if !self.hasRenderedFrame {
-						self.hasRenderedFrame = true
-						self.setPlaybackState(.playing)
-					}
-				}
-
-				if Task.isCancelled { return }
-				self.task = nil
-				self.setPlaybackState(.connecting)
-				await self.scheduleReconnect(url: url)
-
-			} catch {
-				if Task.isCancelled { return }
-				log.error("RTSP pipeline error: \(redactCredentials(in: error.localizedDescription), privacy: .public)")
-				self.task = nil
-				self.setPlaybackState(.connecting)
-				await self.scheduleReconnect(url: url)
-			}
-		}
-	}
-
-	private func scheduleReconnect(url: URL) async {
-		// Light jitter to avoid synchronised reconnect bursts when several
-		// players reconnect to the same network event.
-		let jitter = Double.random(in: 0.85...1.15)
-		let delay = Self.reconnectDelay * jitter
-
-		try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
-
-		guard shouldReconnect, task == nil else { return }
-
-		connect(url: url)
 	}
 
 	private func setPlaybackState(_ state: RTSPPlaybackState) {

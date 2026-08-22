@@ -142,20 +142,30 @@ CameraGrid()
 
 The player keeps owning the state and hands it to the closure. The view is laid over the whole player, so it picks its own wording, style, alignment — and any transform, which is what a host that rotates its whole interface needs. Return `EmptyView()` for a state that should show nothing.
 
+### Playing without a view
+
+`RTSPStreamSource` is the player's connection, on its own: it connects, reports its state, hands over decoded pictures, and reconnects when the camera drops. Use it to record, to compose, or to watch a camera the app never displays.
+
+```swift
+let source = RTSPStreamSource(url: url)
+
+for await event in await source.events() {
+    switch event {
+    case .state(let state): print(state)
+    case .picture(let frame): latest = frame
+    }
+}
+```
+
+Reconnection is a fixed cadence with light jitter — `reconnectDelay`, five seconds by default — rather than a backoff: a surveillance camera can be away for an arbitrary stretch, and should be picked up as soon as it comes back. Ending the iteration, or calling `stop()`, tears the connection down.
+
 ### Offscreen composition
 
-`RTSPCompositor` draws several streams into one `CVPixelBuffer` instead of a view — the mosaic an app shows on screen, in the form an encoder takes. It needs no view at all: `RTSPPipeline` yields the decoded frames for a URL, and the compositor places them.
+`RTSPCompositor` draws several streams into one `CVPixelBuffer` instead of a view — the mosaic an app shows on screen, in the form an encoder takes. Give it the latest picture of each camera, one `RTSPCompositionLayer` apiece.
 
 ```swift
 let compositor = RTSPCompositor(width: 1920, height: 1080)
 
-let pipeline = RTSPPipeline()
-for try await frame in await pipeline.frames(url: url) {
-    latest[camera.id] = frame
-}
-```
-
-```swift
 let layers = cameras.map { camera in
     RTSPCompositionLayer(
         pixelBuffer: latest[camera.id]?.pixelBuffer,
@@ -182,10 +192,11 @@ RTSP URL
   → RTSPDemuxer (actor)        — FFmpeg: connects, extracts SPS/PPS + Annex-B frames
   → VideoToolboxDecoder         — VTDecompressionSession: H.264 → CVPixelBuffer (NV12)
   → DecodedFrame                — (CVPixelBuffer, PTS)
+  → RTSPStreamSource (actor)    — keeps the camera playing, reconnects, reports state
   → MetalVideoRenderer          — CVMetalTextureCache zero-copy → Metal → a drawable, or a CVPixelBuffer
 ```
 
-`RTSPPipeline` (actor) orchestrates demuxer and decoder, bridges their `AsyncStream`s, and handles reconnection with exponential backoff plus cancellation cleanup.
+`RTSPPipeline` (actor) orchestrates demuxer and decoder and bridges their `AsyncStream`s, for the length of one connection. `RTSPStreamSource` (actor) wraps it to keep a camera playing across connections, and is what both `RTSPMetalView` and a headless composition sit on.
 
 Notable details:
 
