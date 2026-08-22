@@ -22,6 +22,27 @@ final class MetalVideoRenderer {
 		var aspect: Float
 	}
 
+	/// Made once and shared: building a library costs milliseconds we would
+	/// otherwise pay per camera.
+	private static let shared: (device: MTLDevice, library: MTLLibrary)? = {
+		guard let device = MTLCreateSystemDefaultDevice(),
+			let library = makeLibrary(device: device)
+		else { return nil }
+		return (device, library)
+	}()
+
+	/// Xcode compiles the shaders into the bundle; SwiftPM has no Metal rule,
+	/// so fall back to the source the package ships.
+	private static func makeLibrary(device: MTLDevice) -> MTLLibrary? {
+		if let compiled = try? device.makeDefaultLibrary(bundle: .module) {
+			return compiled
+		}
+		guard let url = Bundle.module.url(forResource: "VideoShaders", withExtension: "metal"),
+			let source = try? String(contentsOf: url, encoding: .utf8)
+		else { return nil }
+		return try? device.makeLibrary(source: source, options: nil)
+	}
+
 	let device: MTLDevice
 	let commandQueue: MTLCommandQueue
 	private let pipelineState: MTLRenderPipelineState
@@ -29,17 +50,17 @@ final class MetalVideoRenderer {
 
 	init?() {
 		guard
-			let device = MTLCreateSystemDefaultDevice(),
-			let queue = device.makeCommandQueue()
+			let shared = Self.shared,
+			let queue = shared.device.makeCommandQueue()
 		else { return nil }
 
+		let device = shared.device
 		self.device = device
 		self.commandQueue = queue
 
 		guard
-			let lib = try? device.makeDefaultLibrary(bundle: .module),
-			let vert = lib.makeFunction(name: "vertex_transformed"),
-			let frag = lib.makeFunction(name: "fragment_yuv")
+			let vert = shared.library.makeFunction(name: "vertex_transformed"),
+			let frag = shared.library.makeFunction(name: "fragment_yuv")
 		else { return nil }
 
 		let desc = MTLRenderPipelineDescriptor()
