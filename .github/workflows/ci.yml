@@ -18,6 +18,9 @@ jobs:
   test:
     name: Build and test (macOS)
     runs-on: macos-26
+    permissions:
+      # Only to push the badge branch below; the other jobs stay read-only.
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -30,7 +33,63 @@ jobs:
         run: swift build
 
       - name: Test
-        run: swift test
+        run: swift test --enable-code-coverage
+
+      - name: Measure coverage
+        id: coverage
+        shell: bash
+        run: |
+          percent=$(./Scripts/coverage.sh)
+          echo "percent=$percent" >> "$GITHUB_OUTPUT"
+          {
+            echo "### Coverage: ${percent}% of lines"
+            echo ""
+            echo "macOS only — \`swift test\` never compiles the iOS-specific UI."
+            echo ""
+            echo '```'
+            ./Scripts/coverage.sh --report
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # A shields.io endpoint on an orphan branch, so the badge needs no
+      # third-party service and no secret beyond the built-in token.
+      - name: Publish the coverage badge
+        if: github.event_name == 'push'
+        shell: bash
+        env:
+          PERCENT: ${{ steps.coverage.outputs.percent }}
+        run: |
+          integer=${PERCENT%.*}
+          if   [ "$integer" -ge 80 ]; then color=brightgreen
+          elif [ "$integer" -ge 60 ]; then color=green
+          elif [ "$integer" -ge 40 ]; then color=yellow
+          elif [ "$integer" -ge 20 ]; then color=orange
+          else                              color=red
+          fi
+
+          git config user.name  'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+
+          if git ls-remote --exit-code --heads origin badges >/dev/null 2>&1; then
+            git fetch origin badges
+            git worktree add badge-branch FETCH_HEAD
+            git -C badge-branch checkout -B badges
+          else
+            git worktree add --detach badge-branch
+            git -C badge-branch checkout --orphan badges
+            git -C badge-branch rm -rf --quiet . 2>/dev/null || true
+          fi
+
+          printf '{"schemaVersion":1,"label":"coverage","message":"%s%%","color":"%s"}\n' \
+            "$PERCENT" "$color" > badge-branch/coverage.json
+
+          git -C badge-branch add coverage.json
+          if git -C badge-branch diff --cached --quiet; then
+            echo "Coverage unchanged at ${PERCENT}% — nothing to push."
+          else
+            git -C badge-branch commit -m "Update the coverage badge to ${PERCENT}%"
+            git -C badge-branch push origin badges
+          fi
 
   ios:
     name: Build (iOS Simulator)
