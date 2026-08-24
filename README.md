@@ -1,5 +1,7 @@
 # SwiftRTSPPlayer
 
+[![CI](https://github.com/jasminlapalme/SwiftRTSPPlayer/actions/workflows/ci.yml/badge.svg)](https://github.com/jasminlapalme/SwiftRTSPPlayer/actions/workflows/ci.yml)
+
 Hardware-accelerated RTSP player for iOS, macOS, tvOS and visionOS, distributed as a Swift Package. The pipeline wires FFmpeg (RTSP demuxing), VideoToolbox (H.264 decoding) and Metal (zero-copy rendering) under Swift 6 strict concurrency.
 
 ## Platforms

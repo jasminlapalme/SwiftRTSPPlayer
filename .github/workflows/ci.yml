@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  push:
+    branches: [tronc]
+  pull_request:
+    branches: [tronc]
+
+# A new push to a PR supersedes the run already in flight.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build and test (macOS)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      # Frameworks/ is gitignored, so SwiftPM fetches FFmpeg.xcframework from
+      # the release pinned in Package.swift. Never set SWIFTRTSP_LOCAL_FFMPEG here.
+      - name: Show toolchain
+        run: swift --version && xcodebuild -version
+
+      - name: Build
+        run: swift build
+
+      - name: Test
+        run: swift test
+
+  ios:
+    name: Build (iOS Simulator)
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      # swift build only covers macOS; the UIKit paths in Sources/SwiftRTSPPlayer/UI
+      # are compiled nowhere else. The demo app pulls in the library as a consumer.
+      - name: Build the demo app
+        shell: bash
+        run: |
+          xcodebuild build \
+            -project Demos/DemoSwiftRTSPPlayer/DemoSwiftRTSPPlayer.xcodeproj \
+            -scheme DemoSwiftRTSPPlayer \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath DerivedData/ios \
+            CODE_SIGNING_ALLOWED=NO \
+            | xcbeautify
+
+  lint:
+    name: SwiftLint
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install SwiftLint
+        run: brew install swiftlint
+
+      - name: Lint
+        run: ./Scripts/lint.sh
