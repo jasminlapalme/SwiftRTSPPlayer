@@ -134,7 +134,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cannot create H.264 decompression session"
+            "value": "Cannot create an H.264 decompression session"
           }
         },
         "fr": {
@@ -152,7 +152,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Cannot create H.264 format description"
+            "value": "Cannot create an H.264 format description"
           }
         },
         "fr": {
@@ -242,7 +242,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "The camera rejected the request — check the credentials"
+            "value": "The camera rejected the request—check the credentials"
           }
         },
         "fr": {
@@ -314,7 +314,7 @@
         "en": {
           "stringUnit": {
             "state": "translated",
-            "value": "Authentication failed — check the username and password. Repeated failures may lock the camera account."
+            "value": "Authentication failed—check the username and password. Repeated failures may lock the camera account."
           }
         },
         "fr": {
