@@ -66,6 +66,8 @@ public struct RTSPTransformControlPanel: View {
 	/// `false` there and the toggle is not shown.
 	@State private var isFineMode: Bool = false
 	@State private var selectedTab: Tab = .transform
+	/// Guards the reset button: the adjustments it discards can be long to redo.
+	@State private var isConfirmingReset = false
 	/// Held here (not in `ONVIFCameraListView`) so the typed ONVIF credentials
 	/// persist when the user switches tabs and comes back to Cameras.
 	@State private var onvifUsername = ""
@@ -418,12 +420,26 @@ private extension RTSPTransformControlPanel {
 			Spacer()
 
 			Button {
-				resetAll()
+				isConfirmingReset = true
 			} label: {
 				Label(
 					String(localized: "transform.allDefaults", bundle: .module),
 					systemImage: "arrow.counterclockwise"
 				)
+			}
+			.confirmationDialog(
+				String(localized: "transform.allDefaults.confirmTitle", bundle: .module),
+				isPresented: $isConfirmingReset,
+				titleVisibility: .visible
+			) {
+				Button(
+					String(localized: "transform.allDefaults.confirmAction", bundle: .module),
+					role: .destructive,
+					action: resetAll
+				)
+				Button(String(localized: "transform.cancel", bundle: .module), role: .cancel) {}
+			} message: {
+				Text(String(localized: "transform.allDefaults.confirmMessage", bundle: .module))
 			}
 		}
 		.padding()
