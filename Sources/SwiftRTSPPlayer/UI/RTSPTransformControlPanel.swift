@@ -399,6 +399,24 @@ private extension RTSPTransformControlPanel {
 
 	var footer: some View {
 		HStack {
+#if os(tvOS)
+			Button {
+				isFineMode.toggle()
+			} label: {
+				Label(
+					String(localized: "transform.fine", bundle: .module),
+					systemImage: "plusminus"
+				)
+				// Two points taller than the reset button: moving down, the focus engine
+				// takes the candidate whose top edge is the closest.
+				.padding(.vertical, 2)
+			}
+			.foregroundStyle(isFineMode ? Color.panelAccent : .primary)
+			.font(isFineMode ? .body.bold() : .body)
+#endif
+
+			Spacer()
+
 			Button {
 				resetAll()
 			} label: {
@@ -407,16 +425,6 @@ private extension RTSPTransformControlPanel {
 					systemImage: "arrow.counterclockwise"
 				)
 			}
-
-			Spacer()
-
-#if os(tvOS)
-			Button(String(localized: "transform.fine", bundle: .module)) {
-				isFineMode.toggle()
-			}
-			.foregroundStyle(isFineMode ? Color.panelAccent : .primary)
-			.font(isFineMode ? .body.bold() : .body)
-#endif
 		}
 		.padding()
 	}
