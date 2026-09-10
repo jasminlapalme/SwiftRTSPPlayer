@@ -21,6 +21,8 @@ public struct RTSPCompositionLayer: @unchecked Sendable {
 	public var translation: CGPoint
 	public var rotation: CGFloat
 	public var fisheyeCorrection: FisheyeCorrection
+	/// Crops the picture; what it hides is drawn black, like the bare areas.
+	public var mask: VideoMask
 
 	public init(
 		pixelBuffer: CVPixelBuffer?,
@@ -28,7 +30,8 @@ public struct RTSPCompositionLayer: @unchecked Sendable {
 		scale: CGFloat = 1.0,
 		translation: CGPoint = .zero,
 		rotation: CGFloat = 0,
-		fisheyeCorrection: FisheyeCorrection = .identity
+		fisheyeCorrection: FisheyeCorrection = .identity,
+		mask: VideoMask = .identity
 	) {
 		self.pixelBuffer = pixelBuffer
 		self.frame = frame
@@ -36,6 +39,7 @@ public struct RTSPCompositionLayer: @unchecked Sendable {
 		self.translation = translation
 		self.rotation = rotation
 		self.fisheyeCorrection = fisheyeCorrection
+		self.mask = mask
 	}
 
 	/// Fits, scales, rotates about the centre, then offsets. Computed with y

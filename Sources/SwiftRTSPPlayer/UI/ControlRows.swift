@@ -112,6 +112,75 @@ struct TVSliderRow<Field: Hashable>: View {
 	}
 }
 
+/// One labelled row of the tvOS control panel offering a short list of choices,
+/// laid out like `TVSliderRow`. Left and right presses walk the list, and the
+/// clickpad's select advances it.
+struct TVChoiceRow<Field: Hashable, Value: Hashable>: View {
+	let field: Field
+	let label: String
+	@Binding var value: Value
+	let options: [(value: Value, label: String)]
+	let focusedField: FocusState<Field?>.Binding
+
+	private var isSelected: Bool { focusedField.wrappedValue == field }
+
+	var body: some View {
+		HStack(spacing: 14) {
+			Text(label)
+				.font(.subheadline)
+				.foregroundStyle(isSelected ? Color.panelAccent : .primary.opacity(0.85))
+
+			Spacer(minLength: 0)
+
+			HStack(spacing: 10) {
+				ForEach(options, id: \.value) { option in
+					Text(option.label)
+						.font(.subheadline)
+						.fontWeight(option.value == value ? .semibold : .regular)
+						.foregroundStyle(option.value == value ? Color.primary : .primary.opacity(0.45))
+						.padding(.vertical, 4)
+						.padding(.horizontal, 12)
+						.background(
+							Capsule(style: .continuous)
+								.fill(option.value == value ? Color.panelAccent.opacity(0.25) : .clear)
+						)
+				}
+			}
+		}
+		.padding()
+		.background(
+			RoundedRectangle(cornerRadius: 10, style: .continuous)
+				.fill(isSelected ? Color.panelAccent.opacity(0.12) : .clear)
+		)
+		.overlay(
+			RoundedRectangle(cornerRadius: 10, style: .continuous)
+				.stroke(isSelected ? Color.panelAccent.opacity(0.85) : .clear, lineWidth: 1.5)
+		)
+		.focusable()
+		.onMoveCommand(perform: applyMoveCommand)
+		.onTapGesture { step(by: 1) }
+		.contentShape(Rectangle())
+		.focused(focusedField, equals: field)
+		.animation(.easeInOut(duration: 0.18), value: isSelected)
+	}
+
+	private func applyMoveCommand(_ direction: MoveCommandDirection) {
+		switch direction {
+		case .left: step(by: -1)
+		case .right: step(by: 1)
+		default: break
+		}
+	}
+
+	/// Wraps around, so the select button alone cycles the whole list.
+	private func step(by offset: Int) {
+		guard !options.isEmpty else { return }
+		let current = options.firstIndex { $0.value == value } ?? 0
+		let next = (current + offset + options.count) % options.count
+		value = options[next].value
+	}
+}
+
 #else
 
 /// One labelled row of the iOS/macOS control panel: a native slider plus a

@@ -79,6 +79,23 @@ RTSPPlayerView(url: url, rotation: 90, scale: 1.2, translation: CGPoint(x: 40, y
 
 `FisheyeCorrection` parameterizes a polynomial undistortion in `θ = atan(r)`, suited to wide-angle lenses (~110–130° FOV). Use `FisheyeCorrection.identity` to disable the correction.
 
+### Mask
+
+`VideoMask` crops the picture to a rectangle and paints everything outside it black — a ceiling, a neighbouring property, the smeared border of a wide-angle lens. Each side is the fraction hidden from that edge, so `.identity` shows the whole frame:
+
+```swift
+RTSPPlayerView(url: url, mask: VideoMask(top: 0.2, bottom: 0.05))
+```
+
+`anchor` says what the rectangle is pinned to, which is also where it applies in the chain that runs picture → fisheye correction → framing → view:
+
+| Anchor | Applied | Behaviour |
+| --- | --- | --- |
+| `.image` (default) | first, on the picture the camera sends | turns and travels with the image as rotation, scale and translation move it; its edges bow with a fisheye correction |
+| `.view` | last, on the view | a fixed window on screen, which the image moves behind as it is scaled, turned or dragged |
+
+With no fisheye correction the two differ only once the framing moves. `.image` is what you want to blank out something the camera sees; `.view` is what you want to shape the picture the viewer gets.
+
 ### Direct manipulation
 
 With the transforms bound, the viewer adjusts the framing on the video itself:
@@ -107,7 +124,7 @@ RTSPPlayerView(
 
 ### Control panel
 
-`RTSPTransformControlPanel` exposes the transforms — and optionally fisheye correction and ONVIF camera selection — through a tabbed panel, intended as an `.overlay`. On iOS and macOS the tabs use native controls (sliders with numeric fields, segmented tabs); on tvOS they use a focus-driven, swipe-based UI suited to the Siri remote:
+`RTSPTransformControlPanel` exposes the transforms — and optionally fisheye correction, a mask and ONVIF camera selection — through a tabbed panel, intended as an `.overlay`. On iOS and macOS the tabs use native controls (sliders with numeric fields, segmented tabs); on tvOS they use a focus-driven, swipe-based UI suited to the Siri remote:
 
 ```swift
 RTSPPlayerView(url: url, rotation: $rotation, scale: $scale, translation: $translation, fisheyeCorrection: fisheye)
@@ -116,16 +133,18 @@ RTSPPlayerView(url: url, rotation: $rotation, scale: $scale, translation: $trans
             scale: $scale,
             translation: $translation,
             rotation: $rotation,
-            fisheyeCorrection: $fisheye
+            fisheyeCorrection: $fisheye,
+            mask: $mask
         )
         .padding()
     }
 ```
 
-The three tabs are also public views, for apps that want to compose their own panel instead of using `RTSPTransformControlPanel`:
+The reset button in the footer resets the tab on show, so one long-tuned setting is never lost with another. The tabs are also public views, for apps that want to compose their own panel instead of using `RTSPTransformControlPanel`:
 
 - `RTSPTransformControls` — scale / translation / rotation sliders
 - `RTSPFisheyeControls` — the four `FisheyeCorrection` coefficients
+- `RTSPMaskControls` — the anchor and four sides of a `VideoMask`
 - `RTSPCameraListView` — ONVIF discovery, credentials and manual RTSP URL entry, writing the chosen stream to a `Binding<RTSPCameraSelection?>`
 
 ### Playback state
@@ -174,7 +193,8 @@ let layers = cameras.map { camera in
         scale: camera.scale,
         translation: camera.translation,
         rotation: camera.rotation,
-        fisheyeCorrection: camera.fisheye
+        fisheyeCorrection: camera.fisheye,
+        mask: camera.mask
     )
 }
 let composed = await compositor?.render(layers: layers, time: time)
