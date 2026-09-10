@@ -50,6 +50,8 @@ public final class RTSPMetalView: RTSPPlatformView {
 	public var scale: CGFloat = 1.0 { didSet { redraw() } }
 	public var translation: CGPoint = .zero { didSet { redraw() } }
 	public var fisheyeCorrection: FisheyeCorrection = .identity { didSet { redraw() } }
+	/// Named around `UIView.mask`, which this view would otherwise override.
+	public var videoMask: VideoMask = .identity { didSet { redraw() } }
 
 	// MARK: - Direct manipulation
 
@@ -337,7 +339,8 @@ extension RTSPMetalView {
 				y: bounds.height > 0 ? translation.y / bounds.height : 0
 			),
 			rotation: rotation,
-			fisheyeCorrection: fisheyeCorrection
+			fisheyeCorrection: fisheyeCorrection,
+			mask: videoMask
 		)
 
 		renderer.draw([layer], into: drawable.texture, with: commandBuffer)

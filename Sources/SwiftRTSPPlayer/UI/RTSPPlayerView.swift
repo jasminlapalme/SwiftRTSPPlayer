@@ -10,6 +10,7 @@ import SwiftUI
 public struct RTSPPlayerView: View {
 	public let url: URL?
 	public var fisheyeCorrection: FisheyeCorrection
+	public var mask: VideoMask
 
 	@Binding private var rotation: CGFloat
 	@Binding private var scale: CGFloat
@@ -28,13 +29,15 @@ public struct RTSPPlayerView: View {
 		rotation: CGFloat = 0,
 		scale: CGFloat = 1.0,
 		translation: CGPoint = .zero,
-		fisheyeCorrection: FisheyeCorrection = .identity
+		fisheyeCorrection: FisheyeCorrection = .identity,
+		mask: VideoMask = .identity
 	) {
 		self.url = url
 		self._rotation = .constant(rotation)
 		self._scale = .constant(scale)
 		self._translation = .constant(translation)
 		self.fisheyeCorrection = fisheyeCorrection
+		self.mask = mask
 		self.interaction = []
 		self.transformLimits = .default
 	}
@@ -59,6 +62,7 @@ public struct RTSPPlayerView: View {
 		scale: Binding<CGFloat>,
 		translation: Binding<CGPoint>,
 		fisheyeCorrection: FisheyeCorrection = .identity,
+		mask: VideoMask = .identity,
 		interaction: RTSPVideoInteraction = .all,
 		transformLimits: RTSPTransformLimits = .default
 	) {
@@ -67,6 +71,7 @@ public struct RTSPPlayerView: View {
 		self._scale = scale
 		self._translation = translation
 		self.fisheyeCorrection = fisheyeCorrection
+		self.mask = mask
 		self.interaction = interaction
 		self.transformLimits = transformLimits
 	}
@@ -80,6 +85,7 @@ public struct RTSPPlayerView: View {
 					scale: scale,
 					translation: translation,
 					fisheyeCorrection: fisheyeCorrection,
+					mask: mask,
 					interaction: interaction,
 					transformLimits: transformLimits,
 					onTransformChange: applyGestureTransform,

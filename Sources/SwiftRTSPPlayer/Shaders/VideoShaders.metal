@@ -14,6 +14,15 @@ struct FisheyeUniforms {
 	float aspect;  // sourceWidth / sourceHeight
 };
 
+// Fraction of the source picture hidden from each edge; all zero shows the
+// whole frame. A view-anchored mask never gets here — it is a smaller scissor.
+struct MaskUniforms {
+	float left;
+	float right;
+	float top;
+	float bottom;
+};
+
 vertex VertexOut vertex_passthrough(uint vid [[vertex_id]]) {
 		const float2 pos[4]  = {{-1,-1},{1,-1},{-1,1},{1,1}};
 		const float2 uvs[4]  = {{ 0, 1},{1, 1},{ 0,0},{1,0}};
@@ -72,15 +81,18 @@ fragment float4 fragment_yuv(
 														 VertexOut in          [[stage_in]],
 														 texture2d<float> yTex [[texture(0)]],
 														 texture2d<float> uvTex[[texture(1)]],
-														 constant FisheyeUniforms& fisheye [[buffer(0)]]
+														 constant FisheyeUniforms& fisheye [[buffer(0)]],
+														 constant MaskUniforms& mask [[buffer(1)]]
 														 ) {
 	constexpr sampler s(filter::linear, address::clamp_to_edge);
 
 	float2 uv2 = undistortFisheye(in.texCoord, fisheye);
 
-	// Outside the source frame: render black so the "pinched" corners
-	// don't show smeared edge pixels from clamp_to_edge sampling.
-	if (uv2.x < 0.0 || uv2.x > 1.0 || uv2.y < 0.0 || uv2.y > 1.0) {
+	// Outside the mask — the source frame's own edges being the mask at its
+	// widest, which also keeps the "pinched" fisheye corners from showing
+	// smeared edge pixels from clamp_to_edge sampling.
+	if (uv2.x < mask.left || uv2.x > 1.0 - mask.right ||
+			uv2.y < mask.top || uv2.y > 1.0 - mask.bottom) {
 		return float4(0.0, 0.0, 0.0, 1.0);
 	}
 
