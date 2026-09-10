@@ -36,6 +36,7 @@ struct ContentView: View {
 	@State private var translation: CGPoint = .zero
 	@State private var currentCamera: RTSPCameraSelection?
 	@State private var fisheye: FisheyeCorrection = .identity
+	@State private var mask: VideoMask = .identity
 	@State private var showsTransformPanel: Bool = true
 
 	/// The URL to actually play. The selection stores a credential-free URL plus
@@ -55,7 +56,8 @@ struct ContentView: View {
 				rotation: $rotation,
 				scale: $echelle,
 				translation: $translation,
-				fisheyeCorrection: fisheye
+				fisheyeCorrection: fisheye,
+				mask: mask
 			)
 			.border(Color.blue)
 			.overlay(alignment: .bottomLeading) {
@@ -65,6 +67,7 @@ struct ContentView: View {
 						translation: $translation,
 						rotation: $rotation,
 						fisheyeCorrection: $fisheye,
+						mask: $mask,
 						cameraURL: $currentCamera,
 						managedCredentials: managedCredentials
 					)

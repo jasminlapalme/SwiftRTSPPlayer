@@ -137,3 +137,27 @@ private struct PreviewBackdrop: View {
 	}
 	.preferredColorScheme(.dark)
 }
+
+#Preview("With mask") {
+	@Previewable @State var scale: CGFloat = 1.0
+	@Previewable @State var translation: CGPoint = .zero
+	@Previewable @State var rotation: CGFloat = 0
+	@Previewable @State var fisheye: FisheyeCorrection = .identity
+	@Previewable @State var mask = VideoMask(left: 0.05, right: 0.05, top: 0.2)
+
+	ZStack {
+		PreviewBackdrop()
+		VStack {
+			Spacer()
+			RTSPTransformControlPanel(
+				scale: $scale,
+				translation: $translation,
+				rotation: $rotation,
+				fisheyeCorrection: $fisheye,
+				mask: $mask
+			)
+			.padding()
+		}
+	}
+	.preferredColorScheme(.dark)
+}

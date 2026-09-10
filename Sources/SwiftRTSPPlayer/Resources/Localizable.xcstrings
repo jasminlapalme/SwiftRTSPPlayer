@@ -433,6 +433,132 @@
         }
       }
     },
+    "mask.anchor": {
+      "comment": "Label of the control choosing what the mask is pinned to.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Anchor"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Ancrage"
+          }
+        }
+      }
+    },
+    "mask.anchor.image": {
+      "comment": "Mask anchor option: pinned to the picture, so it travels with the image.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Image"
+          }
+        }
+      }
+    },
+    "mask.anchor.view": {
+      "comment": "Mask anchor option: pinned to the view, a fixed window on screen.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "View"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vue"
+          }
+        }
+      }
+    },
+    "mask.bottom": {
+      "comment": "Label of the mask's bottom-edge slider, a fraction of the picture hidden.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bottom"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bas"
+          }
+        }
+      }
+    },
+    "mask.left": {
+      "comment": "Label of the mask's left-edge slider, a fraction of the picture hidden.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Left"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Gauche"
+          }
+        }
+      }
+    },
+    "mask.right": {
+      "comment": "Label of the mask's right-edge slider, a fraction of the picture hidden.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Right"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Droite"
+          }
+        }
+      }
+    },
+    "mask.top": {
+      "comment": "Label of the mask's top-edge slider, a fraction of the picture hidden.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Haut"
+          }
+        }
+      }
+    },
     "playback.connecting": {
       "comment": "Status overlay shown while the player is establishing the initial RTSP connection.",
       "extractionState": "manual",
@@ -679,6 +805,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Fisheye"
+          }
+        }
+      }
+    },
+    "transform.tab.mask": {
+      "comment": "Tab title for the mask section of the transform control panel.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Mask"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Masque"
           }
         }
       }

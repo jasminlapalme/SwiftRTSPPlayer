@@ -11,15 +11,15 @@ import AppKit
 #endif
 
 /// Overlay panel that exposes the player's transform (scale, translation,
-/// rotation) — and optionally fisheye correction and camera selection — through
-/// tabs. On iOS and macOS the tabs use native controls (sliders, numeric
+/// rotation) — and optionally fisheye correction, a mask and camera selection —
+/// through tabs. On iOS and macOS the tabs use native controls (sliders, numeric
 /// fields, segmented tabs); on tvOS they use a focus-driven, swipe-based UI.
 /// The library ships the control; the client decides if/where to show it —
 /// typically as an `.overlay` on `RTSPPlayerView`.
 ///
 /// The tabs' contents are also public views — `RTSPTransformControls`,
-/// `RTSPFisheyeControls` and `RTSPCameraListView` — for clients that want to
-/// compose their own panel instead.
+/// `RTSPFisheyeControls`, `RTSPMaskControls` and `RTSPCameraListView` — for
+/// clients that want to compose their own panel instead.
 ///
 /// ```swift
 /// RTSPPlayerView(url: url, rotation: $rotation, scale: $scale, translation: $translation)
@@ -38,24 +38,29 @@ public struct RTSPTransformControlPanel: View {
 	@Binding private var translation: CGPoint
 	@Binding private var rotation: CGFloat
 	@Binding private var fisheyeCorrection: FisheyeCorrection
+	@Binding private var mask: VideoMask
 
 	private let hasFisheye: Bool
+	private let hasMask: Bool
 	private let scaleRange: ClosedRange<CGFloat>
 	private let translationXRange: ClosedRange<CGFloat>
 	private let translationYRange: ClosedRange<CGFloat>
 	private let rotationRange: ClosedRange<CGFloat>
 	private let fisheyeRange: ClosedRange<CGFloat>
+	private let maskRange: ClosedRange<CGFloat>
 
 	private let defaultScale: CGFloat
 	private let defaultTranslation: CGPoint
 	private let defaultRotation: CGFloat
 	private let defaultFisheye: FisheyeCorrection
+	private let defaultMask: VideoMask
 
 	private let scaleSensivity: CGFloat
 	private let translationXSensivity: CGFloat
 	private let translationYSensivity: CGFloat
 	private let rotationSensivity: CGFloat
 	private let fisheyeSensivity: CGFloat
+	private let maskSensivity: CGFloat
 
 	private let closeAction: () -> Void
 	private let cameraURL: Binding<RTSPCameraSelection?>?
@@ -87,7 +92,7 @@ public struct RTSPTransformControlPanel: View {
 #endif
 
 	private enum Tab: Hashable {
-		case transform, fisheye, cameras
+		case transform, fisheye, mask, cameras
 	}
 
 	public init(
@@ -95,20 +100,24 @@ public struct RTSPTransformControlPanel: View {
 		translation: Binding<CGPoint>,
 		rotation: Binding<CGFloat>,
 		fisheyeCorrection: Binding<FisheyeCorrection>? = nil,
+		mask: Binding<VideoMask>? = nil,
 		scaleRange: ClosedRange<CGFloat> = 0.1...3.0,
 		translationXRange: ClosedRange<CGFloat> = -500...500,
 		translationYRange: ClosedRange<CGFloat> = -500...500,
 		rotationRange: ClosedRange<CGFloat> = -180...180,
 		fisheyeRange: ClosedRange<CGFloat> = -1...1,
+		maskRange: ClosedRange<CGFloat> = 0...0.45,
 		defaultScale: CGFloat = 1.0,
 		defaultTranslation: CGPoint = .zero,
 		defaultRotation: CGFloat = 0,
 		defaultFisheye: FisheyeCorrection = .identity,
+		defaultMask: VideoMask = .identity,
 		scaleSensivity: CGFloat = 0.1,
 		translationXSensivity: CGFloat = 10.0,
 		translationYSensivity: CGFloat = 10.0,
 		rotationSensivity: CGFloat = 1.0,
 		fisheyeSensivity: CGFloat = 0.05,
+		maskSensivity: CGFloat = 0.05,
 		closeAction: @escaping () -> Void = {},
 		cameraURL: Binding<RTSPCameraSelection?>? = nil,
 		managedCredentials: [RTSPManagedCredentials] = []
@@ -118,20 +127,25 @@ public struct RTSPTransformControlPanel: View {
 		self._rotation = rotation
 		self._fisheyeCorrection = fisheyeCorrection ?? .constant(.identity)
 		self.hasFisheye = fisheyeCorrection != nil
+		self._mask = mask ?? .constant(.identity)
+		self.hasMask = mask != nil
 		self.scaleRange = scaleRange
 		self.translationXRange = translationXRange
 		self.translationYRange = translationYRange
 		self.rotationRange = rotationRange
 		self.fisheyeRange = fisheyeRange
+		self.maskRange = maskRange
 		self.defaultScale = defaultScale
 		self.defaultTranslation = defaultTranslation
 		self.defaultRotation = defaultRotation
 		self.defaultFisheye = defaultFisheye
+		self.defaultMask = defaultMask
 		self.scaleSensivity = scaleSensivity
 		self.translationXSensivity = translationXSensivity
 		self.translationYSensivity = translationYSensivity
 		self.rotationSensivity = rotationSensivity
 		self.fisheyeSensivity = fisheyeSensivity
+		self.maskSensivity = maskSensivity
 		self.closeAction = closeAction
 		self.cameraURL = cameraURL
 		self.managedCredentials = managedCredentials
@@ -153,6 +167,8 @@ public struct RTSPTransformControlPanel: View {
 		switch selectedTab {
 		case .fisheye:
 			return hasFisheye ? .fisheye : .transform
+		case .mask:
+			return hasMask ? .mask : .transform
 		case .cameras:
 			return hasCameras ? .cameras : .transform
 		case .transform:
@@ -168,6 +184,8 @@ public struct RTSPTransformControlPanel: View {
 				fixedTab { transformControls }
 			case .fisheye:
 				fixedTab { fisheyeControls }
+			case .mask:
+				fixedTab { maskControls }
 			case .cameras:
 				if let cameraURL {
 					// Match the fixed tabs' height so switching doesn't resize
@@ -219,14 +237,18 @@ public struct RTSPTransformControlPanel: View {
 	}
 
 	/// The slider-row tabs share their layout with the footer; wrapping them
-	/// together lets us measure that combined height and mirror it onto the
-	/// cameras tab (which has no footer).
+	/// together lets us measure that combined height and mirror it onto every
+	/// other tab — the mask tab carries an extra row, and the cameras tab has no
+	/// footer, so left alone the panel would resize as they are switched.
 	@ViewBuilder
 	private func fixedTab<Content: View>(@ViewBuilder _ content: () -> Content) -> some View {
 		VStack(alignment: .leading, spacing: 8) {
 			content()
 			footer
 		}
+		// A floor, not a height: the measurement below then reports the tallest
+		// tab seen so far, which settles once every tab has been shown.
+		.frame(minHeight: fixedTabHeight, alignment: .top)
 		.background(
 			GeometryReader { proxy in
 				Color.clear.preference(key: FixedTabHeightKey.self, value: proxy.size.height)
@@ -236,10 +258,15 @@ public struct RTSPTransformControlPanel: View {
 
 	// MARK: - Reset
 
+	/// Resets the tab on show, so one long-tuned setting is never lost with
+	/// another.
 	private func resetAll() {
-		if hasFisheye && selectedTab == .fisheye {
+		switch effectiveTab {
+		case .fisheye:
 			fisheyeCorrection = defaultFisheye
-		} else {
+		case .mask:
+			mask = defaultMask
+		case .transform, .cameras:
 			scale = defaultScale
 			translation = defaultTranslation
 			rotation = defaultRotation
@@ -285,15 +312,58 @@ private extension RTSPTransformControlPanel {
 		)
 	}
 
+	var maskControls: some View {
+		RTSPMaskControls(
+			mask: $mask,
+			maskRange: maskRange,
+			maskSensivity: maskSensivity,
+			isFineMode: isFineMode
+		)
+	}
+
 	// MARK: - Header bar (tabs + close)
+
+	/// The tabs on offer, in order — a tab whose feature the client left out is
+	/// simply absent.
+	private var tabItems: [PanelTabBar<Tab>.Item] {
+		var items: [PanelTabBar<Tab>.Item] = [
+			.init(
+				tab: .transform,
+				systemImage: "crop.rotate",
+				label: String(localized: "transform.tab.transform", bundle: .module)
+			)
+		]
+		if hasFisheye {
+			items.append(.init(
+				tab: .fisheye,
+				systemImage: "camera.aperture",
+				label: String(localized: "transform.tab.fisheye", bundle: .module)
+			))
+		}
+		if hasMask {
+			items.append(.init(
+				tab: .mask,
+				systemImage: "rectangle.inset.filled",
+				label: String(localized: "transform.tab.mask", bundle: .module)
+			))
+		}
+		if hasCameras {
+			items.append(.init(
+				tab: .cameras,
+				systemImage: "video",
+				label: String(localized: "transform.tab.cameras", bundle: .module)
+			))
+		}
+		return items
+	}
 
 	var headerBar: some View {
 		HStack(spacing: 10) {
 #if os(tvOS)
-			tabPill
+			PanelTabBar(items: tabItems, selection: $selectedTab, focusedTab: $focusedTab)
 #else
-			if hasFisheye || hasCameras {
-				tabPicker
+			if tabItems.count > 1 {
+				PanelTabBar(items: tabItems, selection: $selectedTab)
 			}
 #endif
 			Spacer(minLength: 0)
@@ -312,90 +382,6 @@ private extension RTSPTransformControlPanel {
 		}
 		.padding()
 	}
-
-#if os(tvOS)
-	var tabPill: some View {
-		HStack(spacing: 16) {
-			tabButton(
-				.transform,
-				systemImage: "crop.rotate",
-				label: String(localized: "transform.tab.transform", bundle: .module)
-			)
-			if hasFisheye {
-				tabButton(
-					.fisheye,
-					systemImage: "camera.aperture",
-					label: String(localized: "transform.tab.fisheye", bundle: .module)
-				)
-			}
-			if hasCameras {
-				tabButton(
-					.cameras,
-					systemImage: "video",
-					label: String(localized: "transform.tab.cameras", bundle: .module)
-				)
-			}
-		}
-		.padding(.vertical, 2)
-		.background(
-			Capsule(style: .continuous)
-				.fill(Color.primary.opacity(0.10))
-		)
-	}
-
-	@ViewBuilder
-	private func tabButton(_ tab: Tab, systemImage: String, label: String) -> some View {
-		let isActive = (selectedTab == tab)
-		let isFocus = (focusedTab == tab)
-		Image(systemName: systemImage)
-			.font(.body)
-			.fontWeight(isFocus || isActive ? .semibold : .regular)
-			.foregroundStyle(
-				isFocus
-					? Color.black
-					: (isActive ? Color.primary : Color.primary.opacity(0.6))
-			)
-			.frame(width: 24, height: 20)
-			.padding(.vertical, 14)
-			.padding(.horizontal, 32)
-			.background(
-				Capsule(style: .continuous)
-					.fill(isFocus ? Color.white : Color.clear)
-					.shadow(
-						color: Color.black.opacity(isFocus ? 0.30 : 0),
-						radius: isFocus ? 12 : 0,
-						y: isFocus ? 8 : 0
-					)
-			)
-			.scaleEffect(isFocus ? 1.1 : 1.0)
-			.animation(.easeInOut(duration: 0.18), value: isFocus)
-			.animation(.easeInOut(duration: 0.18), value: isActive)
-			.contentShape(Capsule())
-			.accessibilityLabel(label)
-			.focusable(true)
-			.focused($focusedTab, equals: tab)
-	}
-#else
-	var tabPicker: some View {
-		Picker(selection: $selectedTab) {
-			Text(String(localized: "transform.tab.transform", bundle: .module))
-				.tag(Tab.transform)
-			if hasFisheye {
-				Text(String(localized: "transform.tab.fisheye", bundle: .module))
-					.tag(Tab.fisheye)
-			}
-			if hasCameras {
-				Text(String(localized: "transform.tab.cameras", bundle: .module))
-					.tag(Tab.cameras)
-			}
-		} label: {
-			EmptyView()
-		}
-		.pickerStyle(.segmented)
-		.labelsHidden()
-		.fixedSize()
-	}
-#endif
 
 	// MARK: - Footer
 

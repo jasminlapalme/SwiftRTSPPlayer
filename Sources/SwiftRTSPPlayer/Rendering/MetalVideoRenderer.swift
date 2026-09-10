@@ -10,8 +10,27 @@ import Metal
 import QuartzCore
 import simd
 
-/// Applies a framing — fit, scale, translation, rotation, fisheye — into any
-/// texture, so the screen and a broadcast are drawn by the same code.
+/// The whole-pixel area a layer draws through: its tile, cut down by a
+/// view-anchored mask — the pass cleared the attachment black, so what the
+/// scissor drops stays cleared.
+func scissorRect(for mask: VideoMask, in destination: CGRect) -> CGRect {
+	guard mask.anchor == .view, !mask.isIdentity else { return destination }
+	let visible = mask.visibleRect(in: destination)
+	// Rounded inward: a mask is there to conceal, so give up a pixel rather
+	// than reveal one. Intersected too, since a fraction of a pixel rarely
+	// divides evenly and a far edge landing a hair past the tile overruns the
+	// render pass, which Metal's validation layer rejects outright.
+	let minX = visible.minX.rounded(.up)
+	let minY = visible.minY.rounded(.up)
+	let maxX = visible.maxX.rounded(.down)
+	let maxY = visible.maxY.rounded(.down)
+	guard maxX > minX, maxY > minY else { return .zero }
+	return CGRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+		.intersection(destination)
+}
+
+/// Applies a framing — fit, scale, translation, rotation, fisheye, mask — into
+/// any texture, so the screen and a broadcast are drawn by the same code.
 final class MetalVideoRenderer {
 
 	private struct FisheyeUniforms {
@@ -20,6 +39,13 @@ final class MetalVideoRenderer {
 		var k3v: Float
 		var k4v: Float
 		var aspect: Float
+	}
+
+	private struct MaskUniforms {
+		var left: Float
+		var right: Float
+		var top: Float
+		var bottom: Float
 	}
 
 	/// Made once and shared: building a library costs milliseconds we would
@@ -119,23 +145,25 @@ final class MetalVideoRenderer {
 
 	private func draw(_ layer: RTSPCompositionLayer, with encoder: MTLRenderCommandEncoder) {
 		let destination = layer.frame.integral
+		let visible = scissorRect(for: layer.mask, in: destination)
 		guard destination.width >= 1, destination.height >= 1,
+			visible.width >= 1, visible.height >= 1,
 			let pixelBuffer = layer.pixelBuffer,
 			// Zero-copy: wrap the NV12 planes as textures to sample from.
 			let yTex = textureCache.makeTexture(from: pixelBuffer, pixelFormat: .r8Unorm, planeIndex: 0),
 			let uvTex = textureCache.makeTexture(from: pixelBuffer, pixelFormat: .rg8Unorm, planeIndex: 1)
 		else { return }
 
-		// Viewport and scissor crop a picture zoomed past its tile, the way the
-		// player's layer is clipped to its view.
+		// The viewport still spans the whole tile — it is what the framing is
+		// laid out against — while the scissor clips a picture zoomed past it.
 		encoder.setViewport(MTLViewport(
 			originX: Double(destination.minX), originY: Double(destination.minY),
 			width: Double(destination.width), height: Double(destination.height),
 			znear: 0, zfar: 1
 		))
 		encoder.setScissorRect(MTLScissorRect(
-			x: Int(destination.minX), y: Int(destination.minY),
-			width: Int(destination.width), height: Int(destination.height)
+			x: Int(visible.minX), y: Int(visible.minY),
+			width: Int(visible.width), height: Int(visible.height)
 		))
 
 		let sourceWidth = CVPixelBufferGetWidth(pixelBuffer)
@@ -156,6 +184,16 @@ final class MetalVideoRenderer {
 			aspect: sourceHeight > 0 ? Float(sourceWidth) / Float(sourceHeight) : 1
 		)
 		encoder.setFragmentBytes(&fisheye, length: MemoryLayout<FisheyeUniforms>.size, index: 0)
+		// Only an image-anchored mask reaches the shader; the other one was the
+		// scissor above, and leaving it here too would crop the picture twice.
+		let sampled = layer.mask.anchor == .image ? layer.mask : .identity
+		var mask = MaskUniforms(
+			left: Float(sampled.left),
+			right: Float(sampled.right),
+			top: Float(sampled.top),
+			bottom: Float(sampled.bottom)
+		)
+		encoder.setFragmentBytes(&mask, length: MemoryLayout<MaskUniforms>.size, index: 1)
 
 		encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
 	}
