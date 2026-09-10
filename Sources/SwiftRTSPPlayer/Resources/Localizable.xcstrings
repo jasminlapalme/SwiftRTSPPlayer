@@ -487,6 +487,78 @@
         }
       }
     },
+    "transform.allDefaults.confirmAction": {
+      "comment": "Button confirming the reset of the controls to their defaults.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Réinitialiser"
+          }
+        }
+      }
+    },
+    "transform.allDefaults.confirmMessage": {
+      "comment": "Message of the alert confirming a reset of the controls to their defaults.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Your current adjustments will be lost."
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vos réglages actuels seront perdus."
+          }
+        }
+      }
+    },
+    "transform.allDefaults.confirmTitle": {
+      "comment": "Title of the alert confirming a reset of the controls to their defaults.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reset to defaults?"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Tout réinitialiser ?"
+          }
+        }
+      }
+    },
+    "transform.cancel": {
+      "comment": "Button dismissing a confirmation without applying it.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Cancel"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Annuler"
+          }
+        }
+      }
+    },
     "transform.close": {
       "localizations": {
         "en": {
