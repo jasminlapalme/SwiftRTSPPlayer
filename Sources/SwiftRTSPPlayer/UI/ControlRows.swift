@@ -282,7 +282,7 @@ struct TickedSlider: NSViewRepresentable {
 	/// feels the same whatever the row's range or width.
 	private static let snapDistance: CGFloat = 6
 
-	final class Coordinator: NSObject {
+	@MainActor final class Coordinator: NSObject {
 		var value: Binding<CGFloat>
 
 		init(value: Binding<CGFloat>) {
