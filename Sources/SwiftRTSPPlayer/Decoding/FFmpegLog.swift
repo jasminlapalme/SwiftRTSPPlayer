@@ -52,8 +52,9 @@ public enum FFmpegLog {
 				Int32(buffer.count),
 				&printPrefix
 			)
-			let raw = String(cString: buffer)
-				.trimmingCharacters(in: .whitespacesAndNewlines)
+			let bytes = buffer.prefix { $0 != 0 }.map { UInt8(bitPattern: $0) }
+			guard let decoded = String(validating: bytes, as: UTF8.self) else { return }
+			let raw = decoded.trimmingCharacters(in: .whitespacesAndNewlines)
 			guard !raw.isEmpty else { return }
 			let msg = redactCredentials(in: raw)
 

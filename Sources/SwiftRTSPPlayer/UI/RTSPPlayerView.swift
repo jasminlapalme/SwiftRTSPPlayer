@@ -20,7 +20,7 @@ public struct RTSPPlayerView: View {
 	private let transformLimits: RTSPTransformLimits
 
 	@State private var playbackState: RTSPPlaybackState = .stopped
-	@Environment(\.rtspStatusOverlay) private var statusOverlay
+	@Environment(\.rtspStatusOverlayStyle) private var statusOverlayStyle
 
 	/// Plays with a fixed framing. Gestures on the video are off: with nothing to
 	/// write the new values back to, the image would snap back on the next update.
@@ -96,7 +96,7 @@ public struct RTSPPlayerView: View {
 			}
 		}
 		.overlay {
-			statusOverlay(url == nil ? .noSource : playbackState)
+			statusOverlayStyle.anyBody(state: url == nil ? .noSource : playbackState)
 		}
 	}
 
