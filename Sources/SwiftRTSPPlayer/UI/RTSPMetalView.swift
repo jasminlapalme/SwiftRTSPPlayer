@@ -38,6 +38,7 @@ public final class RTSPMetalView: RTSPPlatformView {
 	private var playbackState: RTSPPlaybackState = .stopped
 	private var playbackStateContinuation: AsyncStream<RTSPPlaybackState>.Continuation?
 	private var holdsIdleTimer = false
+	private var pictureRelay: RTSPPictureRelay?
 
 	// MARK: - Video sizing
 
@@ -196,6 +197,7 @@ public final class RTSPMetalView: RTSPPlatformView {
 					self.setPlaybackState(state)
 				case .picture(let frame):
 					self.display(frame.pixelBuffer)
+					self.pictureRelay?.send(frame)
 				}
 			}
 		}
@@ -209,6 +211,20 @@ public final class RTSPMetalView: RTSPPlatformView {
 		Task { await stoppedSource?.stop() }
 		releaseIdleTimer()
 		setPlaybackState(.stopped)
+	}
+
+	/// Hands each picture, as decoded, to `handler` off the main actor; a slow
+	/// handler gets the newest picture rather than a backlog. `nil` stops it.
+	public func onPicture(minimumInterval: Duration = .zero, perform handler: RTSPPictureHandler?) {
+		guard let handler else {
+			pictureRelay = nil
+			return
+		}
+		if let pictureRelay {
+			pictureRelay.update(minimumInterval: minimumInterval, handler: handler)
+		} else {
+			pictureRelay = RTSPPictureRelay(minimumInterval: minimumInterval, handler: handler)
+		}
 	}
 
 	private func acquireIdleTimer() {

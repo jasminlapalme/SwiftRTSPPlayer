@@ -166,6 +166,23 @@ CameraGrid()
 
 The player keeps owning the state and hands it to the style's `makeBody`. A style is a value rather than a closure, so SwiftUI can tell it has not changed and leaves the players alone. The view is laid over the whole player, so it picks its own wording, style, alignment — and any transform, which is what a host that rotates its whole interface needs. Return `EmptyView()` for a state that should show nothing.
 
+### Image analysis
+
+`onPicture` hands the pictures a player decodes to the app — for Vision, Core ML or any other analysis — while the player keeps showing them:
+
+```swift
+RTSPPlayerView(url: url)
+    .onPicture(minimumInterval: .milliseconds(500)) { frame in
+        let request = VNDetectHumanRectanglesRequest()
+        try? VNImageRequestHandler(cvPixelBuffer: frame.pixelBuffer).perform([request])
+        await detections.update(request.results ?? [])
+    }
+```
+
+The handler runs off the main actor, so a slow model never holds up the display. It gets the picture as the camera sends it — NV12, before fisheye correction, mask and framing — along with its `pts`. When it is still busy as new pictures arrive, it skips to the newest one rather than working through a backlog; `minimumInterval` spaces the calls out further, which is usually all an analysis needs. Call `onPicture` on the `RTSPPlayerView` itself, before any other modifier.
+
+The pixel buffer is shared with the display: read it, but don't write to it. `RTSPMetalView` offers the same through `onPicture(minimumInterval:perform:)`, where `nil` stops the deliveries.
+
 ### Playing without a view
 
 `RTSPStreamSource` is the player's connection, on its own: it connects, reports its state, hands over decoded pictures, and reconnects when the camera drops. Use it to record, to compose, or to watch a camera the app never displays.

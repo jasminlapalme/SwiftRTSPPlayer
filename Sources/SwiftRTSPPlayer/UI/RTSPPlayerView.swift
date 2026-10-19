@@ -18,6 +18,8 @@ public struct RTSPPlayerView: View {
 
 	private let interaction: RTSPVideoInteraction
 	private let transformLimits: RTSPTransformLimits
+	private var pictureHandler: RTSPPictureHandler?
+	private var pictureInterval: Duration = .zero
 
 	@State private var playbackState: RTSPPlaybackState = .stopped
 	@Environment(\.rtspStatusOverlayStyle) private var statusOverlayStyle
@@ -89,6 +91,8 @@ public struct RTSPPlayerView: View {
 					interaction: interaction,
 					transformLimits: transformLimits,
 					onTransformChange: applyGestureTransform,
+					pictureHandler: pictureHandler,
+					pictureInterval: pictureInterval,
 					playbackState: $playbackState
 				)
 			} else {
@@ -98,6 +102,18 @@ public struct RTSPPlayerView: View {
 		.overlay {
 			statusOverlayStyle.anyBody(state: url == nil ? .noSource : playbackState)
 		}
+	}
+
+	/// Hands each picture, before fisheye correction, mask and framing, to `handler`
+	/// off the main actor; a slow handler skips to the newest picture.
+	public func onPicture(
+		minimumInterval: Duration = .zero,
+		perform handler: @escaping RTSPPictureHandler
+	) -> RTSPPlayerView {
+		var view = self
+		view.pictureHandler = handler
+		view.pictureInterval = minimumInterval
+		return view
 	}
 
 	private func applyGestureTransform(_ transform: RTSPTransform) {

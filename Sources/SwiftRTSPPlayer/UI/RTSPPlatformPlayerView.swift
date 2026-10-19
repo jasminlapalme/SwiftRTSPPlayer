@@ -17,6 +17,8 @@ struct RTSPPlatformPlayerView: UIViewRepresentable {
 	let interaction: RTSPVideoInteraction
 	let transformLimits: RTSPTransformLimits
 	let onTransformChange: (RTSPTransform) -> Void
+	let pictureHandler: RTSPPictureHandler?
+	let pictureInterval: Duration
 	@Binding var playbackState: RTSPPlaybackState
 
 	func makeCoordinator() -> RTSPPlayerCoordinator {
@@ -45,6 +47,7 @@ struct RTSPPlatformPlayerView: UIViewRepresentable {
 	static func dismantleUIView(_ uiView: RTSPMetalView, coordinator: RTSPPlayerCoordinator) {
 		coordinator.stopObservingPlaybackState()
 		uiView.onTransformChange = nil
+		uiView.onPicture(perform: nil)
 		uiView.stop()
 	}
 
@@ -57,6 +60,7 @@ struct RTSPPlatformPlayerView: UIViewRepresentable {
 		view.interaction = interaction
 		view.transformLimits = transformLimits
 		view.onTransformChange = onTransformChange
+		view.onPicture(minimumInterval: pictureInterval, perform: pictureHandler)
 	}
 }
 
@@ -72,6 +76,8 @@ struct RTSPPlatformPlayerView: NSViewRepresentable {
 	let interaction: RTSPVideoInteraction
 	let transformLimits: RTSPTransformLimits
 	let onTransformChange: (RTSPTransform) -> Void
+	let pictureHandler: RTSPPictureHandler?
+	let pictureInterval: Duration
 	@Binding var playbackState: RTSPPlaybackState
 
 	func makeCoordinator() -> RTSPPlayerCoordinator {
@@ -100,6 +106,7 @@ struct RTSPPlatformPlayerView: NSViewRepresentable {
 	static func dismantleNSView(_ nsView: RTSPMetalView, coordinator: RTSPPlayerCoordinator) {
 		coordinator.stopObservingPlaybackState()
 		nsView.onTransformChange = nil
+		nsView.onPicture(perform: nil)
 		nsView.stop()
 	}
 
@@ -112,6 +119,7 @@ struct RTSPPlatformPlayerView: NSViewRepresentable {
 		view.interaction = interaction
 		view.transformLimits = transformLimits
 		view.onTransformChange = onTransformChange
+		view.onPicture(minimumInterval: pictureInterval, perform: pictureHandler)
 	}
 }
 
