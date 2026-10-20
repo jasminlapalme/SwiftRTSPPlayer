@@ -79,6 +79,12 @@ RTSPPlayerView(url: url, rotation: 90, scale: 1.2, translation: CGPoint(x: 40, y
 
 `FisheyeCorrection` parameterizes a polynomial undistortion in `θ = atan(r)`, suited to wide-angle lenses (~110–130° FOV). Use `FisheyeCorrection.identity` to disable the correction.
 
+Straightening a wide-angle picture stretches its borders past the frame, where they are lost. `expansion` zooms the corrected picture out so they come back into view — `1.5` shows half as much again in each direction — and `scale` then crops to what matters:
+
+```swift
+FisheyeCorrection(k1v: -0.35, k2v: -0.06, expansion: 1.5)
+```
+
 ### Mask
 
 `VideoMask` crops the picture to a rectangle and paints everything outside it black — a ceiling, a neighbouring property, the smeared border of a wide-angle lens. Each side is the fraction hidden from that edge, so `.identity` shows the whole frame:
@@ -143,7 +149,7 @@ RTSPPlayerView(url: url, rotation: $rotation, scale: $scale, translation: $trans
 The reset button in the footer resets the tab on show, so one long-tuned setting is never lost with another. The tabs are also public views, for apps that want to compose their own panel instead of using `RTSPTransformControlPanel`:
 
 - `RTSPTransformControls` — scale / translation / rotation sliders
-- `RTSPFisheyeControls` — the four `FisheyeCorrection` coefficients
+- `RTSPFisheyeControls` — the four `FisheyeCorrection` coefficients and its expansion
 - `RTSPMaskControls` — the anchor and four sides of a `VideoMask`
 - `RTSPCameraListView` — ONVIF discovery, credentials and manual RTSP URL entry, writing the chosen stream to a `Binding<RTSPCameraSelection?>`
 

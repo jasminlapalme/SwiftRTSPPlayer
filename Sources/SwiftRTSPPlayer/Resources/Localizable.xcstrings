@@ -361,6 +361,24 @@
         }
       }
     },
+    "fisheye.expansion": {
+      "comment": "Label of the slider that zooms the fisheye-corrected picture out to bring back its stretched borders.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Expansion"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Recul"
+          }
+        }
+      }
+    },
     "fisheye.k1": {
       "comment": "Label of the fisheye k1 coefficient slider.",
       "extractionState": "manual",

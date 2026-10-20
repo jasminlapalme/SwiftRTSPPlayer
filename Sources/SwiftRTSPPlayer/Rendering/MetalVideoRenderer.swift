@@ -39,6 +39,7 @@ final class MetalVideoRenderer {
 		var k3v: Float
 		var k4v: Float
 		var aspect: Float
+		var expansion: Float
 	}
 
 	private struct MaskUniforms {
@@ -181,7 +182,8 @@ final class MetalVideoRenderer {
 			k2v: Float(layer.fisheyeCorrection.k2v),
 			k3v: Float(layer.fisheyeCorrection.k3v),
 			k4v: Float(layer.fisheyeCorrection.k4v),
-			aspect: sourceHeight > 0 ? Float(sourceWidth) / Float(sourceHeight) : 1
+			aspect: sourceHeight > 0 ? Float(sourceWidth) / Float(sourceHeight) : 1,
+			expansion: Float(layer.fisheyeCorrection.expansion)
 		)
 		encoder.setFragmentBytes(&fisheye, length: MemoryLayout<FisheyeUniforms>.size, index: 0)
 		// Only an image-anchored mask reaches the shader; the other one was the

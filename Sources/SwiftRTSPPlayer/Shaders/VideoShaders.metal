@@ -11,7 +11,8 @@ struct FisheyeUniforms {
 	float k2v;
 	float k3v;
 	float k4v;
-	float aspect;  // sourceWidth / sourceHeight
+	float aspect;     // sourceWidth / sourceHeight
+	float expansion;  // 1 leaves the corrected picture at its size
 };
 
 // Fraction of the source picture hidden from each edge; all zero shows the
@@ -50,13 +51,14 @@ vertex VertexOut vertex_transformed(
 
 // OpenCV-style fisheye undistortion: polynomial in θ = atan(r), applied as a
 // multiplicative factor on r so all coefficients zero leaves uv unchanged.
-// Aspect ratio is compensated so the correction is truly radial.
+// Aspect ratio is compensated so the correction is truly radial. The expansion
+// zooms the corrected picture out, bringing back the borders it stretched away.
 static inline float2 undistortFisheye(float2 uv, constant FisheyeUniforms& p) {
-	if (p.k1v == 0.0 && p.k2v == 0.0 && p.k3v == 0.0 && p.k4v == 0.0) {
+	if (p.k1v == 0.0 && p.k2v == 0.0 && p.k3v == 0.0 && p.k4v == 0.0 && p.expansion == 1.0) {
 		return uv;
 	}
 
-	float2 centered = uv - 0.5;
+	float2 centered = (uv - 0.5) * p.expansion;
 	centered.x *= p.aspect;
 
 	float r = length(centered);
