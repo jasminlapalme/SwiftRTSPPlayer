@@ -13,6 +13,7 @@ struct RTSPPlatformPlayerView: UIViewRepresentable {
 	let scale: CGFloat
 	let translation: CGPoint
 	let fisheyeCorrection: FisheyeCorrection
+	let perspective: VideoPerspective
 	let mask: VideoMask
 	let interaction: RTSPVideoInteraction
 	let transformLimits: RTSPTransformLimits
@@ -56,6 +57,7 @@ struct RTSPPlatformPlayerView: UIViewRepresentable {
 		view.scale = scale
 		view.translation = translation
 		view.fisheyeCorrection = fisheyeCorrection
+		view.perspective = perspective
 		view.videoMask = mask
 		view.interaction = interaction
 		view.transformLimits = transformLimits
@@ -72,6 +74,7 @@ struct RTSPPlatformPlayerView: NSViewRepresentable {
 	let scale: CGFloat
 	let translation: CGPoint
 	let fisheyeCorrection: FisheyeCorrection
+	let perspective: VideoPerspective
 	let mask: VideoMask
 	let interaction: RTSPVideoInteraction
 	let transformLimits: RTSPTransformLimits
@@ -115,6 +118,7 @@ struct RTSPPlatformPlayerView: NSViewRepresentable {
 		view.scale = scale
 		view.translation = translation
 		view.fisheyeCorrection = fisheyeCorrection
+		view.perspective = perspective
 		view.videoMask = mask
 		view.interaction = interaction
 		view.transformLimits = transformLimits

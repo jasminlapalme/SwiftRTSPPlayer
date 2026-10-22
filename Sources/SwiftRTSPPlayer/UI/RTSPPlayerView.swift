@@ -10,6 +10,7 @@ import SwiftUI
 public struct RTSPPlayerView: View {
 	public let url: URL?
 	public var fisheyeCorrection: FisheyeCorrection
+	public var perspective: VideoPerspective
 	public var mask: VideoMask
 
 	@Binding private var rotation: CGFloat
@@ -32,6 +33,7 @@ public struct RTSPPlayerView: View {
 		scale: CGFloat = 1.0,
 		translation: CGPoint = .zero,
 		fisheyeCorrection: FisheyeCorrection = .identity,
+		perspective: VideoPerspective = .identity,
 		mask: VideoMask = .identity
 	) {
 		self.url = url
@@ -39,6 +41,7 @@ public struct RTSPPlayerView: View {
 		self._scale = .constant(scale)
 		self._translation = .constant(translation)
 		self.fisheyeCorrection = fisheyeCorrection
+		self.perspective = perspective
 		self.mask = mask
 		self.interaction = []
 		self.transformLimits = .default
@@ -64,6 +67,7 @@ public struct RTSPPlayerView: View {
 		scale: Binding<CGFloat>,
 		translation: Binding<CGPoint>,
 		fisheyeCorrection: FisheyeCorrection = .identity,
+		perspective: VideoPerspective = .identity,
 		mask: VideoMask = .identity,
 		interaction: RTSPVideoInteraction = .all,
 		transformLimits: RTSPTransformLimits = .default
@@ -73,6 +77,7 @@ public struct RTSPPlayerView: View {
 		self._scale = scale
 		self._translation = translation
 		self.fisheyeCorrection = fisheyeCorrection
+		self.perspective = perspective
 		self.mask = mask
 		self.interaction = interaction
 		self.transformLimits = transformLimits
@@ -87,6 +92,7 @@ public struct RTSPPlayerView: View {
 					scale: scale,
 					translation: translation,
 					fisheyeCorrection: fisheyeCorrection,
+					perspective: perspective,
 					mask: mask,
 					interaction: interaction,
 					transformLimits: transformLimits,
@@ -104,7 +110,7 @@ public struct RTSPPlayerView: View {
 		}
 	}
 
-	/// Hands each picture, before fisheye correction, mask and framing, to `handler`
+	/// Hands each picture, before fisheye correction, perspective, mask and framing, to `handler`
 	/// off the main actor; a slow handler skips to the newest picture.
 	public func onPicture(
 		minimumInterval: Duration = .zero,

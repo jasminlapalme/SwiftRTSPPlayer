@@ -85,6 +85,25 @@ Straightening a wide-angle picture stretches its borders past the frame, where t
 FisheyeCorrection(k1v: -0.35, k2v: -0.06, expansion: 1.5)
 ```
 
+### Perspective
+
+Once the fisheye is corrected every line is straight, but a camera that is not square to the scene still sees a rectangle as a trapezoid. `VideoPerspective` straightens it: each corner gives the point of the corrected picture that lands on that corner of the frame, in unit coordinates from the top left. `.identity` is the frame's own corners; whatever falls outside the picture is drawn black:
+
+```swift
+RTSPPlayerView(
+    url: url,
+    fisheyeCorrection: FisheyeCorrection(k1v: -0.35, k2v: -0.06, expansion: 1.5),
+    perspective: VideoPerspective(
+        topLeft: CGPoint(x: 0.12, y: 0.08),
+        topRight: CGPoint(x: 0.86, y: 0.10),
+        bottomRight: CGPoint(x: 0.90, y: 0.93),
+        bottomLeft: CGPoint(x: 0.09, y: 0.90)
+    )
+)
+```
+
+The corners are meant to come from a measurement — the four corners of a known rectangle in the scene — rather than from a hand-tuned control.
+
 ### Mask
 
 `VideoMask` crops the picture to a rectangle and paints everything outside it black — a ceiling, a neighbouring property, the smeared border of a wide-angle lens. Each side is the fraction hidden from that edge, so `.identity` shows the whole frame:
@@ -93,11 +112,11 @@ FisheyeCorrection(k1v: -0.35, k2v: -0.06, expansion: 1.5)
 RTSPPlayerView(url: url, mask: VideoMask(top: 0.2, bottom: 0.05))
 ```
 
-`anchor` says what the rectangle is pinned to, which is also where it applies in the chain that runs picture → fisheye correction → framing → view:
+`anchor` says what the rectangle is pinned to, which is also where it applies in the chain that runs picture → fisheye correction → perspective → framing → view:
 
 | Anchor | Applied | Behaviour |
 | --- | --- | --- |
-| `.image` (default) | first, on the picture the camera sends | turns and travels with the image as rotation, scale and translation move it; its edges bow with a fisheye correction |
+| `.image` (default) | first, on the picture the camera sends | turns and travels with the image as rotation, scale and translation move it; its edges bow with a fisheye correction and slant with a perspective |
 | `.view` | last, on the view | a fixed window on screen, which the image moves behind as it is scaled, turned or dragged |
 
 With no fisheye correction the two differ only once the framing moves. `.image` is what you want to blank out something the camera sees; `.view` is what you want to shape the picture the viewer gets.

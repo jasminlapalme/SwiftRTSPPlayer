@@ -51,6 +51,7 @@ public final class RTSPMetalView: RTSPPlatformView {
 	public var scale: CGFloat = 1.0 { didSet { redraw() } }
 	public var translation: CGPoint = .zero { didSet { redraw() } }
 	public var fisheyeCorrection: FisheyeCorrection = .identity { didSet { redraw() } }
+	public var perspective: VideoPerspective = .identity { didSet { redraw() } }
 	/// Named around `UIView.mask`, which this view would otherwise override.
 	public var videoMask: VideoMask = .identity { didSet { redraw() } }
 
@@ -356,6 +357,7 @@ extension RTSPMetalView {
 			),
 			rotation: rotation,
 			fisheyeCorrection: fisheyeCorrection,
+			perspective: perspective,
 			mask: videoMask
 		)
 

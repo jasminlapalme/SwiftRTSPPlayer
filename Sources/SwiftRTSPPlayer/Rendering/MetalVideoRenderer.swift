@@ -29,7 +29,7 @@ func scissorRect(for mask: VideoMask, in destination: CGRect) -> CGRect {
 		.intersection(destination)
 }
 
-/// Applies a framing — fit, scale, translation, rotation, fisheye, mask — into
+/// Applies a framing — fit, scale, translation, rotation, fisheye, perspective, mask — into
 /// any texture, so the screen and a broadcast are drawn by the same code.
 final class MetalVideoRenderer {
 
@@ -196,6 +196,8 @@ final class MetalVideoRenderer {
 			bottom: Float(sampled.bottom)
 		)
 		encoder.setFragmentBytes(&mask, length: MemoryLayout<MaskUniforms>.size, index: 1)
+		var perspective = layer.perspective.shaderHomography
+		encoder.setFragmentBytes(&perspective, length: MemoryLayout<simd_float3x3>.size, index: 2)
 
 		encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
 	}

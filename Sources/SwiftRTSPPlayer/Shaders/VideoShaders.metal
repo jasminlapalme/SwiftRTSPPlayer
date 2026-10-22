@@ -84,11 +84,18 @@ fragment float4 fragment_yuv(
 														 texture2d<float> yTex [[texture(0)]],
 														 texture2d<float> uvTex[[texture(1)]],
 														 constant FisheyeUniforms& fisheye [[buffer(0)]],
-														 constant MaskUniforms& mask [[buffer(1)]]
+														 constant MaskUniforms& mask [[buffer(1)]],
+														 constant float3x3& perspective [[buffer(2)]]
 														 ) {
 	constexpr sampler s(filter::linear, address::clamp_to_edge);
 
-	float2 uv2 = undistortFisheye(in.texCoord, fisheye);
+	// Into the corrected picture; the identity homography leaves uv exact.
+	float3 projected = perspective * float3(in.texCoord, 1.0);
+	// Behind the horizon, where the fisheye polynomial could fold it back into the picture.
+	if (projected.z <= 0.0) {
+		return float4(0.0, 0.0, 0.0, 1.0);
+	}
+	float2 uv2 = undistortFisheye(projected.xy / projected.z, fisheye);
 
 	// Outside the mask — the source frame's own edges being the mask at its
 	// widest, which also keeps the "pinched" fisheye corners from showing
