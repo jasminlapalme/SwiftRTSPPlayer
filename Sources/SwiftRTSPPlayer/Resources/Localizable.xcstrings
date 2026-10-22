@@ -577,6 +577,132 @@
         }
       }
     },
+    "perspective.corner": {
+      "comment": "Label of the picker choosing which corner of the frame the perspective sliders move.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Corner"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Coin"
+          }
+        }
+      }
+    },
+    "perspective.corner.bottomLeft": {
+      "comment": "Accessibility label of the bottom-left corner in the perspective corner picker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bottom left"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En bas à gauche"
+          }
+        }
+      }
+    },
+    "perspective.corner.bottomRight": {
+      "comment": "Accessibility label of the bottom-right corner in the perspective corner picker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bottom right"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En bas à droite"
+          }
+        }
+      }
+    },
+    "perspective.corner.topLeft": {
+      "comment": "Accessibility label of the top-left corner in the perspective corner picker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top left"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En haut à gauche"
+          }
+        }
+      }
+    },
+    "perspective.corner.topRight": {
+      "comment": "Accessibility label of the top-right corner in the perspective corner picker.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Top right"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "En haut à droite"
+          }
+        }
+      }
+    },
+    "perspective.horizontal": {
+      "comment": "Label of the slider moving the chosen corner sideways, a fraction of the picture's width.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horizontal"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Horizontale"
+          }
+        }
+      }
+    },
+    "perspective.vertical": {
+      "comment": "Label of the slider moving the chosen corner up or down, a fraction of the picture's height.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Vertical"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Verticale"
+          }
+        }
+      }
+    },
     "playback.connecting": {
       "comment": "Status overlay shown while the player is establishing the initial RTSP connection.",
       "extractionState": "manual",
@@ -841,6 +967,24 @@
           "stringUnit": {
             "state": "translated",
             "value": "Masque"
+          }
+        }
+      }
+    },
+    "transform.tab.perspective": {
+      "comment": "Tab title for the perspective section of the transform control panel.",
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perspective"
+          }
+        },
+        "fr": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Perspective"
           }
         }
       }

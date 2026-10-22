@@ -52,6 +52,8 @@ public final class RTSPMetalView: RTSPPlatformView {
 	public var translation: CGPoint = .zero { didSet { redraw() } }
 	public var fisheyeCorrection: FisheyeCorrection = .identity { didSet { redraw() } }
 	public var perspective: VideoPerspective = .identity { didSet { redraw() } }
+	/// Shows the whole corrected picture, unframed and unstraightened, for handles to be laid on its corners.
+	public var isEditingPerspective = false { didSet { redraw() } }
 	/// Named around `UIView.mask`, which this view would otherwise override.
 	public var videoMask: VideoMask = .identity { didSet { redraw() } }
 
@@ -74,6 +76,10 @@ public final class RTSPMetalView: RTSPPlatformView {
 		limits.layout = RTSPContentLayout(fittedSize: fittedVideoSize, viewSize: bounds.size)
 		return limits
 	}
+
+	/// Called with the size of the pictures, once known and whenever the camera changes it.
+	var onVideoSizeChange: ((CGSize) -> Void)?
+	private var reportedVideoSize: CGSize?
 
 	/// Called when a gesture changes the transform — never for a change the host
 	/// made itself by setting `scale`, `translation` or `rotation`.
@@ -315,6 +321,11 @@ extension RTSPMetalView {
 		lastPixelBuffer = pixelBuffer
 		let width = CVPixelBufferGetWidth(pixelBuffer)
 		let height = CVPixelBufferGetHeight(pixelBuffer)
+		let size = CGSize(width: width, height: height)
+		if size != reportedVideoSize {
+			reportedVideoSize = size
+			onVideoSizeChange?(size)
+		}
 		if width > 0, height > 0, width != videoWidth || height != videoHeight {
 			videoWidth = width
 			videoHeight = height
@@ -346,20 +357,28 @@ extension RTSPMetalView {
 			let commandBuffer = renderer.makeCommandBuffer()
 		else { return }
 
-		let layer = RTSPCompositionLayer(
-			pixelBuffer: pixelBuffer,
-			frame: CGRect(origin: .zero, size: size),
-			scale: scale,
-			// The view works in points, a composition in fractions of its frame.
-			translation: CGPoint(
-				x: bounds.width > 0 ? translation.x / bounds.width : 0,
-				y: bounds.height > 0 ? translation.y / bounds.height : 0
-			),
-			rotation: rotation,
-			fisheyeCorrection: fisheyeCorrection,
-			perspective: perspective,
-			mask: videoMask
-		)
+		let layer = isEditingPerspective
+			? RTSPCompositionLayer(
+				pixelBuffer: pixelBuffer,
+				frame: CGRect(origin: .zero, size: size),
+				fisheyeCorrection: fisheyeCorrection,
+				// A view mask belongs to the framing; one on the image hides what it hides either way.
+				mask: videoMask.anchor == .image ? videoMask : .identity
+			)
+			: RTSPCompositionLayer(
+				pixelBuffer: pixelBuffer,
+				frame: CGRect(origin: .zero, size: size),
+				scale: scale,
+				// The view works in points, a composition in fractions of its frame.
+				translation: CGPoint(
+					x: bounds.width > 0 ? translation.x / bounds.width : 0,
+					y: bounds.height > 0 ? translation.y / bounds.height : 0
+				),
+				rotation: rotation,
+				fisheyeCorrection: fisheyeCorrection,
+				perspective: perspective,
+				mask: videoMask
+			)
 
 		renderer.draw([layer], into: drawable.texture, with: commandBuffer)
 		commandBuffer.present(drawable)

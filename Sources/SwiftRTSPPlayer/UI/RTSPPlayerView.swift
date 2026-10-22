@@ -21,8 +21,11 @@ public struct RTSPPlayerView: View {
 	private let transformLimits: RTSPTransformLimits
 	private var pictureHandler: RTSPPictureHandler?
 	private var pictureInterval: Duration = .zero
+	private var editedPerspective: Binding<VideoPerspective>?
+	private var isPerspectiveEditorActive = false
 
 	@State private var playbackState: RTSPPlaybackState = .stopped
+	@State private var videoSize: CGSize?
 	@Environment(\.rtspStatusOverlayStyle) private var statusOverlayStyle
 
 	/// Plays with a fixed framing. Gestures on the video are off: with nothing to
@@ -92,11 +95,13 @@ public struct RTSPPlayerView: View {
 					scale: scale,
 					translation: translation,
 					fisheyeCorrection: fisheyeCorrection,
-					perspective: perspective,
+					perspective: editedPerspective?.wrappedValue ?? perspective,
+					isEditingPerspective: showsPerspectiveHandles,
 					mask: mask,
 					interaction: interaction,
 					transformLimits: transformLimits,
 					onTransformChange: applyGestureTransform,
+					onVideoSizeChange: { videoSize = $0 },
 					pictureHandler: pictureHandler,
 					pictureInterval: pictureInterval,
 					playbackState: $playbackState
@@ -106,8 +111,37 @@ public struct RTSPPlayerView: View {
 			}
 		}
 		.overlay {
+			perspectiveHandles
+		}
+		.overlay {
 			statusOverlayStyle.anyBody(state: url == nil ? .noSource : playbackState)
 		}
+	}
+
+	/// tvOS has no pointer for the handles, so its picture stays straightened while the panel edits it.
+	private var showsPerspectiveHandles: Bool {
+#if os(tvOS)
+		false
+#else
+		isPerspectiveEditorActive && editedPerspective != nil
+#endif
+	}
+
+	@ViewBuilder
+	private var perspectiveHandles: some View {
+#if !os(tvOS)
+		if showsPerspectiveHandles, url != nil, let editedPerspective, let videoSize {
+			RTSPPerspectiveHandles(perspective: editedPerspective, videoSize: videoSize)
+		}
+#endif
+	}
+
+	/// Takes over the initializer's perspective; while `isActive`, its corners are dragged over the unframed picture.
+	public func perspectiveEditing(_ perspective: Binding<VideoPerspective>, isActive: Bool) -> RTSPPlayerView {
+		var view = self
+		view.editedPerspective = perspective
+		view.isPerspectiveEditorActive = isActive
+		return view
 	}
 
 	/// Hands each picture, before fisheye correction, perspective, mask and framing, to `handler`

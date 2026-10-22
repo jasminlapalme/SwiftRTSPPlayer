@@ -27,6 +27,32 @@ public struct VideoPerspective: Equatable, Sendable, Codable {
 
 	public static let identity = VideoPerspective()
 
+	/// How far an editor lets a corner go: half a picture past each edge.
+	public static let editableRange: ClosedRange<CGFloat> = -0.5...1.5
+
+	enum Corner: CaseIterable {
+		case topLeft, topRight, bottomRight, bottomLeft
+	}
+
+	subscript(corner: Corner) -> CGPoint {
+		get {
+			switch corner {
+			case .topLeft: topLeft
+			case .topRight: topRight
+			case .bottomRight: bottomRight
+			case .bottomLeft: bottomLeft
+			}
+		}
+		set {
+			switch corner {
+			case .topLeft: topLeft = newValue
+			case .topRight: topRight = newValue
+			case .bottomRight: bottomRight = newValue
+			case .bottomLeft: bottomLeft = newValue
+			}
+		}
+	}
+
 	/// Frame to picture coordinates with h33 = 1; `nil` when three corners line up.
 	var homography: simd_double3x3? {
 		let frame = [CGPoint(x: 0, y: 0), CGPoint(x: 1, y: 0), CGPoint(x: 1, y: 1), CGPoint(x: 0, y: 1)]

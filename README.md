@@ -102,7 +102,15 @@ RTSPPlayerView(
 )
 ```
 
-The corners are meant to come from a measurement — the four corners of a known rectangle in the scene — rather than from a hand-tuned control.
+The corners are best measured — the four corners of a known rectangle in the scene — and then touched up by hand. `perspectiveEditing` hands them to four handles on the video: while it is active, the player shows the whole corrected picture, unframed and unstraightened, the viewer drags each handle onto a corner, and the framing gestures pause. The binding then takes over the `perspective` given to the initializer. tvOS has no pointer, so there the picture stays straightened and the panel's sliders do the editing:
+
+```swift
+@State private var perspective = VideoPerspective.identity
+@State private var isEditingPerspective = false
+
+RTSPPlayerView(url: url, rotation: $rotation, scale: $scale, translation: $translation)
+    .perspectiveEditing($perspective, isActive: isEditingPerspective)
+```
 
 ### Mask
 
@@ -149,7 +157,7 @@ RTSPPlayerView(
 
 ### Control panel
 
-`RTSPTransformControlPanel` exposes the transforms — and optionally fisheye correction, a mask and ONVIF camera selection — through a tabbed panel, intended as an `.overlay`. On iOS and macOS the tabs use native controls (sliders with numeric fields, segmented tabs); on tvOS they use a focus-driven, swipe-based UI suited to the Siri remote:
+`RTSPTransformControlPanel` exposes the transforms — and optionally fisheye correction, a perspective, a mask and ONVIF camera selection — through a tabbed panel, intended as an `.overlay`. On iOS and macOS the tabs use native controls (sliders with numeric fields, segmented tabs); on tvOS they use a focus-driven, swipe-based UI suited to the Siri remote:
 
 ```swift
 RTSPPlayerView(url: url, rotation: $rotation, scale: $scale, translation: $translation, fisheyeCorrection: fisheye)
@@ -159,16 +167,21 @@ RTSPPlayerView(url: url, rotation: $rotation, scale: $scale, translation: $trans
             translation: $translation,
             rotation: $rotation,
             fisheyeCorrection: $fisheye,
+            perspective: $perspective,
+            isEditingPerspective: $isEditingPerspective,
             mask: $mask
         )
         .padding()
     }
 ```
 
+`isEditingPerspective` is set while the perspective tab shows, which is what `perspectiveEditing` waits for to put its handles on the video.
+
 The reset button in the footer resets the tab on show, so one long-tuned setting is never lost with another. The tabs are also public views, for apps that want to compose their own panel instead of using `RTSPTransformControlPanel`:
 
 - `RTSPTransformControls` — scale / translation / rotation sliders
 - `RTSPFisheyeControls` — the four `FisheyeCorrection` coefficients and its expansion
+- `RTSPPerspectiveControls` — a corner picker and the position of that corner of a `VideoPerspective`
 - `RTSPMaskControls` — the anchor and four sides of a `VideoMask`
 - `RTSPCameraListView` — ONVIF discovery, credentials and manual RTSP URL entry, writing the chosen stream to a `Binding<RTSPCameraSelection?>`
 
