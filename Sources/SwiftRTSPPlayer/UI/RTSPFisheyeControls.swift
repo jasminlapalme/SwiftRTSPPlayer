@@ -6,7 +6,8 @@
 import SwiftUI
 
 /// The fisheye tab of `RTSPTransformControlPanel`, usable on its own: slider
-/// rows for the four distortion coefficients of `FisheyeCorrection`. On iOS and
+/// rows for the four distortion coefficients of `FisheyeCorrection` and its
+/// expansion. On iOS and
 /// macOS the rows are native sliders with a numeric field for exact values; on
 /// tvOS they are the focus-driven swipe sliders of the control panel.
 ///
@@ -25,7 +26,7 @@ public struct RTSPFisheyeControls: View {
 
 #if os(tvOS)
 	private enum Field: Hashable {
-		case k1v, k2v, k3v, k4v
+		case k1v, k2v, k3v, k4v, expansion
 	}
 	@FocusState private var focusedField: Field?
 #endif
@@ -56,6 +57,13 @@ public struct RTSPFisheyeControls: View {
 			("fisheye.k4", Binding(get: { fisheyeCorrection.k4v }, set: { fisheyeCorrection.k4v = $0 }))
 		]
 	}
+
+	private var expansion: Binding<CGFloat> {
+		Binding(get: { fisheyeCorrection.expansion }, set: { fisheyeCorrection.expansion = $0 })
+	}
+
+	/// Zooming in is the framing's job: the expansion only gives back what the correction stretched away.
+	private let expansionRange: ClosedRange<CGFloat> = 1...2
 
 	private func label(_ key: String) -> String {
 		String(localized: String.LocalizationValue(key), bundle: .module)
@@ -100,6 +108,15 @@ public struct RTSPFisheyeControls: View {
 				isFineMode: isFineMode,
 				focusedField: $focusedField
 			)
+			TVSliderRow(
+				field: Field.expansion,
+				label: label("fisheye.expansion"),
+				value: expansion,
+				range: expansionRange,
+				sensivity: fisheyeSensivity,
+				isFineMode: isFineMode,
+				focusedField: $focusedField
+			)
 		}
 #else
 		Grid(horizontalSpacing: 16, verticalSpacing: 18) {
@@ -111,6 +128,12 @@ public struct RTSPFisheyeControls: View {
 					sensivity: fisheyeSensivity
 				)
 			}
+			nativeSliderRow(
+				label: label("fisheye.expansion"),
+				value: expansion,
+				range: expansionRange,
+				sensivity: fisheyeSensivity
+			)
 		}
 		.padding()
 #endif

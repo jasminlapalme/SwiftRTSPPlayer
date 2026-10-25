@@ -37,7 +37,10 @@ struct ContentView: View {
 	@State private var currentCamera: RTSPCameraSelection?
 	@State private var fisheye: FisheyeCorrection = .identity
 	@State private var mask: VideoMask = .identity
+	@State private var perspective: VideoPerspective = .identity
+	@State private var isEditingPerspective = false
 	@State private var showsTransformPanel: Bool = true
+	@State private var motionMeter = MotionMeter()
 
 	/// The URL to actually play. The selection stores a credential-free URL plus
 	/// a tag describing how to authenticate it; resolving a managed reference back
@@ -59,7 +62,16 @@ struct ContentView: View {
 				fisheyeCorrection: fisheye,
 				mask: mask
 			)
+			.perspectiveEditing($perspective, isActive: isEditingPerspective)
+			// Twice a second is plenty to see motion, and spares the battery.
+			.onPicture(minimumInterval: .milliseconds(500)) { [motionMeter] frame in
+				await motionMeter.analyze(frame)
+			}
 			.border(Color.blue)
+			.overlay(alignment: .topTrailing) {
+				MotionBadge(meter: motionMeter)
+					.padding()
+			}
 			.overlay(alignment: .bottomLeading) {
 				if showsTransformPanel {
 					RTSPTransformControlPanel(
@@ -67,6 +79,8 @@ struct ContentView: View {
 						translation: $translation,
 						rotation: $rotation,
 						fisheyeCorrection: $fisheye,
+						perspective: $perspective,
+						isEditingPerspective: $isEditingPerspective,
 						mask: $mask,
 						cameraURL: $currentCamera,
 						managedCredentials: managedCredentials

@@ -161,3 +161,30 @@ private struct PreviewBackdrop: View {
 	}
 	.preferredColorScheme(.dark)
 }
+
+#Preview("With perspective") {
+	@Previewable @State var scale: CGFloat = 1.0
+	@Previewable @State var translation: CGPoint = .zero
+	@Previewable @State var rotation: CGFloat = 0
+	@Previewable @State var perspective = VideoPerspective(
+		topLeft: CGPoint(x: 0.12, y: 0.08),
+		topRight: CGPoint(x: 0.86, y: 0.10),
+		bottomRight: CGPoint(x: 0.90, y: 0.93),
+		bottomLeft: CGPoint(x: 0.09, y: 0.90)
+	)
+
+	ZStack {
+		PreviewBackdrop()
+		VStack {
+			Spacer()
+			RTSPTransformControlPanel(
+				scale: $scale,
+				translation: $translation,
+				rotation: $rotation,
+				perspective: $perspective
+			)
+			.padding()
+		}
+	}
+	.preferredColorScheme(.dark)
+}

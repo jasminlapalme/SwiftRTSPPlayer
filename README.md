@@ -79,6 +79,39 @@ RTSPPlayerView(url: url, rotation: 90, scale: 1.2, translation: CGPoint(x: 40, y
 
 `FisheyeCorrection` parameterizes a polynomial undistortion in `θ = atan(r)`, suited to wide-angle lenses (~110–130° FOV). Use `FisheyeCorrection.identity` to disable the correction.
 
+Straightening a wide-angle picture stretches its borders past the frame, where they are lost. `expansion` zooms the corrected picture out so they come back into view — `1.5` shows half as much again in each direction — and `scale` then crops to what matters:
+
+```swift
+FisheyeCorrection(k1v: -0.35, k2v: -0.06, expansion: 1.5)
+```
+
+### Perspective
+
+Once the fisheye is corrected every line is straight, but a camera that is not square to the scene still sees a rectangle as a trapezoid. `VideoPerspective` straightens it: each corner gives the point of the corrected picture that lands on that corner of the frame, in unit coordinates from the top left. `.identity` is the frame's own corners; whatever falls outside the picture is drawn black:
+
+```swift
+RTSPPlayerView(
+    url: url,
+    fisheyeCorrection: FisheyeCorrection(k1v: -0.35, k2v: -0.06, expansion: 1.5),
+    perspective: VideoPerspective(
+        topLeft: CGPoint(x: 0.12, y: 0.08),
+        topRight: CGPoint(x: 0.86, y: 0.10),
+        bottomRight: CGPoint(x: 0.90, y: 0.93),
+        bottomLeft: CGPoint(x: 0.09, y: 0.90)
+    )
+)
+```
+
+The corners are best measured — the four corners of a known rectangle in the scene — and then touched up by hand. `perspectiveEditing` hands them to four handles on the video: while it is active, the player shows the whole corrected picture, unframed and unstraightened, the viewer drags each handle onto a corner, and the framing gestures pause. The binding then takes over the `perspective` given to the initializer. tvOS has no pointer, so there the picture stays straightened and the panel's sliders do the editing:
+
+```swift
+@State private var perspective = VideoPerspective.identity
+@State private var isEditingPerspective = false
+
+RTSPPlayerView(url: url, rotation: $rotation, scale: $scale, translation: $translation)
+    .perspectiveEditing($perspective, isActive: isEditingPerspective)
+```
+
 ### Mask
 
 `VideoMask` crops the picture to a rectangle and paints everything outside it black — a ceiling, a neighbouring property, the smeared border of a wide-angle lens. Each side is the fraction hidden from that edge, so `.identity` shows the whole frame:
@@ -87,11 +120,11 @@ RTSPPlayerView(url: url, rotation: 90, scale: 1.2, translation: CGPoint(x: 40, y
 RTSPPlayerView(url: url, mask: VideoMask(top: 0.2, bottom: 0.05))
 ```
 
-`anchor` says what the rectangle is pinned to, which is also where it applies in the chain that runs picture → fisheye correction → framing → view:
+`anchor` says what the rectangle is pinned to, which is also where it applies in the chain that runs picture → fisheye correction → perspective → framing → view:
 
 | Anchor | Applied | Behaviour |
 | --- | --- | --- |
-| `.image` (default) | first, on the picture the camera sends | turns and travels with the image as rotation, scale and translation move it; its edges bow with a fisheye correction |
+| `.image` (default) | first, on the picture the camera sends | turns and travels with the image as rotation, scale and translation move it; its edges bow with a fisheye correction and slant with a perspective |
 | `.view` | last, on the view | a fixed window on screen, which the image moves behind as it is scaled, turned or dragged |
 
 With no fisheye correction the two differ only once the framing moves. `.image` is what you want to blank out something the camera sees; `.view` is what you want to shape the picture the viewer gets.
@@ -124,7 +157,7 @@ RTSPPlayerView(
 
 ### Control panel
 
-`RTSPTransformControlPanel` exposes the transforms — and optionally fisheye correction, a mask and ONVIF camera selection — through a tabbed panel, intended as an `.overlay`. On iOS and macOS the tabs use native controls (sliders with numeric fields, segmented tabs); on tvOS they use a focus-driven, swipe-based UI suited to the Siri remote:
+`RTSPTransformControlPanel` exposes the transforms — and optionally fisheye correction, a perspective, a mask and ONVIF camera selection — through a tabbed panel, intended as an `.overlay`. On iOS and macOS the tabs use native controls (sliders with numeric fields, segmented tabs); on tvOS they use a focus-driven, swipe-based UI suited to the Siri remote:
 
 ```swift
 RTSPPlayerView(url: url, rotation: $rotation, scale: $scale, translation: $translation, fisheyeCorrection: fisheye)
@@ -134,16 +167,21 @@ RTSPPlayerView(url: url, rotation: $rotation, scale: $scale, translation: $trans
             translation: $translation,
             rotation: $rotation,
             fisheyeCorrection: $fisheye,
+            perspective: $perspective,
+            isEditingPerspective: $isEditingPerspective,
             mask: $mask
         )
         .padding()
     }
 ```
 
+`isEditingPerspective` is set while the perspective tab shows, which is what `perspectiveEditing` waits for to put its handles on the video.
+
 The reset button in the footer resets the tab on show, so one long-tuned setting is never lost with another. The tabs are also public views, for apps that want to compose their own panel instead of using `RTSPTransformControlPanel`:
 
 - `RTSPTransformControls` — scale / translation / rotation sliders
-- `RTSPFisheyeControls` — the four `FisheyeCorrection` coefficients
+- `RTSPFisheyeControls` — the four `FisheyeCorrection` coefficients and its expansion
+- `RTSPPerspectiveControls` — a corner picker and the position of that corner of a `VideoPerspective`
 - `RTSPMaskControls` — the anchor and four sides of a `VideoMask`
 - `RTSPCameraListView` — ONVIF discovery, credentials and manual RTSP URL entry, writing the chosen stream to a `Binding<RTSPCameraSelection?>`
 
@@ -165,6 +203,23 @@ CameraGrid()
 ```
 
 The player keeps owning the state and hands it to the style's `makeBody`. A style is a value rather than a closure, so SwiftUI can tell it has not changed and leaves the players alone. The view is laid over the whole player, so it picks its own wording, style, alignment — and any transform, which is what a host that rotates its whole interface needs. Return `EmptyView()` for a state that should show nothing.
+
+### Image analysis
+
+`onPicture` hands the pictures a player decodes to the app — for Vision, Core ML or any other analysis — while the player keeps showing them:
+
+```swift
+RTSPPlayerView(url: url)
+    .onPicture(minimumInterval: .milliseconds(500)) { frame in
+        let request = VNDetectHumanRectanglesRequest()
+        try? VNImageRequestHandler(cvPixelBuffer: frame.pixelBuffer).perform([request])
+        await detections.update(request.results ?? [])
+    }
+```
+
+The handler runs off the main actor, so a slow model never holds up the display. It gets the picture as the camera sends it — NV12, before fisheye correction, mask and framing — along with its `pts`. When it is still busy as new pictures arrive, it skips to the newest one rather than working through a backlog; `minimumInterval` spaces the calls out further, which is usually all an analysis needs. Call `onPicture` on the `RTSPPlayerView` itself, before any other modifier.
+
+The pixel buffer is shared with the display: read it, but don't write to it. `RTSPMetalView` offers the same through `onPicture(minimumInterval:perform:)`, where `nil` stops the deliveries.
 
 ### Playing without a view
 

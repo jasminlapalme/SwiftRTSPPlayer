@@ -11,14 +11,14 @@ import AppKit
 #endif
 
 /// Overlay panel that exposes the player's transform (scale, translation,
-/// rotation) — and optionally fisheye correction, a mask and camera selection —
+/// rotation) — and optionally fisheye correction, a perspective, a mask and camera selection —
 /// through tabs. On iOS and macOS the tabs use native controls (sliders, numeric
 /// fields, segmented tabs); on tvOS they use a focus-driven, swipe-based UI.
 /// The library ships the control; the client decides if/where to show it —
 /// typically as an `.overlay` on `RTSPPlayerView`.
 ///
 /// The tabs' contents are also public views — `RTSPTransformControls`,
-/// `RTSPFisheyeControls`, `RTSPMaskControls` and `RTSPCameraListView` — for
+/// `RTSPFisheyeControls`, `RTSPPerspectiveControls`, `RTSPMaskControls` and `RTSPCameraListView` — for
 /// clients that want to compose their own panel instead.
 ///
 /// ```swift
@@ -38,21 +38,27 @@ public struct RTSPTransformControlPanel: View {
 	@Binding private var translation: CGPoint
 	@Binding private var rotation: CGFloat
 	@Binding private var fisheyeCorrection: FisheyeCorrection
+	@Binding private var perspective: VideoPerspective
 	@Binding private var mask: VideoMask
 
 	private let hasFisheye: Bool
+	private let hasPerspective: Bool
 	private let hasMask: Bool
+	/// Set while the perspective tab shows, so the player can put its corner handles on the video.
+	private let isEditingPerspective: Binding<Bool>?
 	private let scaleRange: ClosedRange<CGFloat>
 	private let translationXRange: ClosedRange<CGFloat>
 	private let translationYRange: ClosedRange<CGFloat>
 	private let rotationRange: ClosedRange<CGFloat>
 	private let fisheyeRange: ClosedRange<CGFloat>
+	private let perspectiveRange: ClosedRange<CGFloat>
 	private let maskRange: ClosedRange<CGFloat>
 
 	private let defaultScale: CGFloat
 	private let defaultTranslation: CGPoint
 	private let defaultRotation: CGFloat
 	private let defaultFisheye: FisheyeCorrection
+	private let defaultPerspective: VideoPerspective
 	private let defaultMask: VideoMask
 
 	private let scaleSensivity: CGFloat
@@ -60,6 +66,7 @@ public struct RTSPTransformControlPanel: View {
 	private let translationYSensivity: CGFloat
 	private let rotationSensivity: CGFloat
 	private let fisheyeSensivity: CGFloat
+	private let perspectiveSensivity: CGFloat
 	private let maskSensivity: CGFloat
 
 	private let closeAction: () -> Void
@@ -92,7 +99,7 @@ public struct RTSPTransformControlPanel: View {
 #endif
 
 	private enum Tab: Hashable {
-		case transform, fisheye, mask, cameras
+		case transform, fisheye, perspective, mask, cameras
 	}
 
 	public init(
@@ -100,23 +107,28 @@ public struct RTSPTransformControlPanel: View {
 		translation: Binding<CGPoint>,
 		rotation: Binding<CGFloat>,
 		fisheyeCorrection: Binding<FisheyeCorrection>? = nil,
+		perspective: Binding<VideoPerspective>? = nil,
+		isEditingPerspective: Binding<Bool>? = nil,
 		mask: Binding<VideoMask>? = nil,
 		scaleRange: ClosedRange<CGFloat> = 0.1...3.0,
 		translationXRange: ClosedRange<CGFloat> = -500...500,
 		translationYRange: ClosedRange<CGFloat> = -500...500,
 		rotationRange: ClosedRange<CGFloat> = -180...180,
 		fisheyeRange: ClosedRange<CGFloat> = -1...1,
+		perspectiveRange: ClosedRange<CGFloat> = VideoPerspective.editableRange,
 		maskRange: ClosedRange<CGFloat> = 0...0.45,
 		defaultScale: CGFloat = 1.0,
 		defaultTranslation: CGPoint = .zero,
 		defaultRotation: CGFloat = 0,
 		defaultFisheye: FisheyeCorrection = .identity,
+		defaultPerspective: VideoPerspective = .identity,
 		defaultMask: VideoMask = .identity,
 		scaleSensivity: CGFloat = 0.1,
 		translationXSensivity: CGFloat = 10.0,
 		translationYSensivity: CGFloat = 10.0,
 		rotationSensivity: CGFloat = 1.0,
 		fisheyeSensivity: CGFloat = 0.05,
+		perspectiveSensivity: CGFloat = 0.01,
 		maskSensivity: CGFloat = 0.05,
 		closeAction: @escaping () -> Void = {},
 		cameraURL: Binding<RTSPCameraSelection?>? = nil,
@@ -127,6 +139,9 @@ public struct RTSPTransformControlPanel: View {
 		self._rotation = rotation
 		self._fisheyeCorrection = fisheyeCorrection ?? .constant(.identity)
 		self.hasFisheye = fisheyeCorrection != nil
+		self._perspective = perspective ?? .constant(.identity)
+		self.hasPerspective = perspective != nil
+		self.isEditingPerspective = isEditingPerspective
 		self._mask = mask ?? .constant(.identity)
 		self.hasMask = mask != nil
 		self.scaleRange = scaleRange
@@ -134,17 +149,20 @@ public struct RTSPTransformControlPanel: View {
 		self.translationYRange = translationYRange
 		self.rotationRange = rotationRange
 		self.fisheyeRange = fisheyeRange
+		self.perspectiveRange = perspectiveRange
 		self.maskRange = maskRange
 		self.defaultScale = defaultScale
 		self.defaultTranslation = defaultTranslation
 		self.defaultRotation = defaultRotation
 		self.defaultFisheye = defaultFisheye
+		self.defaultPerspective = defaultPerspective
 		self.defaultMask = defaultMask
 		self.scaleSensivity = scaleSensivity
 		self.translationXSensivity = translationXSensivity
 		self.translationYSensivity = translationYSensivity
 		self.rotationSensivity = rotationSensivity
 		self.fisheyeSensivity = fisheyeSensivity
+		self.perspectiveSensivity = perspectiveSensivity
 		self.maskSensivity = maskSensivity
 		self.closeAction = closeAction
 		self.cameraURL = cameraURL
@@ -167,6 +185,8 @@ public struct RTSPTransformControlPanel: View {
 		switch selectedTab {
 		case .fisheye:
 			return hasFisheye ? .fisheye : .transform
+		case .perspective:
+			return hasPerspective ? .perspective : .transform
 		case .mask:
 			return hasMask ? .mask : .transform
 		case .cameras:
@@ -184,6 +204,8 @@ public struct RTSPTransformControlPanel: View {
 				fixedTab { transformControls }
 			case .fisheye:
 				fixedTab { fisheyeControls }
+			case .perspective:
+				fixedTab { perspectiveControls }
 			case .mask:
 				fixedTab { maskControls }
 			case .cameras:
@@ -217,6 +239,12 @@ public struct RTSPTransformControlPanel: View {
 #endif
 		.onPreferenceChange(FixedTabHeightKey.self) { height in
 			if height > 0 { fixedTabHeight = height }
+		}
+		.onChange(of: effectiveTab, initial: true) { _, tab in
+			isEditingPerspective?.wrappedValue = tab == .perspective
+		}
+		.onDisappear {
+			isEditingPerspective?.wrappedValue = false
 		}
 #if os(tvOS)
 		// Focus → tab switch. When entering from outside, snap back to
@@ -264,6 +292,8 @@ public struct RTSPTransformControlPanel: View {
 		switch effectiveTab {
 		case .fisheye:
 			fisheyeCorrection = defaultFisheye
+		case .perspective:
+			perspective = defaultPerspective
 		case .mask:
 			mask = defaultMask
 		case .transform, .cameras:
@@ -312,6 +342,15 @@ private extension RTSPTransformControlPanel {
 		)
 	}
 
+	var perspectiveControls: some View {
+		RTSPPerspectiveControls(
+			perspective: $perspective,
+			perspectiveRange: perspectiveRange,
+			perspectiveSensivity: perspectiveSensivity,
+			isFineMode: isFineMode
+		)
+	}
+
 	var maskControls: some View {
 		RTSPMaskControls(
 			mask: $mask,
@@ -338,6 +377,13 @@ private extension RTSPTransformControlPanel {
 				tab: .fisheye,
 				systemImage: "camera.aperture",
 				label: String(localized: "transform.tab.fisheye", bundle: .module)
+			))
+		}
+		if hasPerspective {
+			items.append(.init(
+				tab: .perspective,
+				systemImage: "perspective",
+				label: String(localized: "transform.tab.perspective", bundle: .module)
 			))
 		}
 		if hasMask {

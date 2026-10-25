@@ -35,7 +35,11 @@ final class RTSPTransformGestureController: NSObject {
 
 	/// Read off the view on every step rather than cached: the limits follow the
 	/// zoom and the view's size, both of which move under a live gesture.
-	private var enabled: RTSPVideoInteraction { view?.interaction ?? [] }
+	private var enabled: RTSPVideoInteraction {
+		// The framing is set aside while the perspective is edited; moving it there would be invisible.
+		guard let view, !view.isEditingPerspective else { return [] }
+		return view.interaction
+	}
 	private var limits: RTSPTransformLimits { view?.gestureLimits ?? .default }
 
 	/// The transform the current gesture started from.

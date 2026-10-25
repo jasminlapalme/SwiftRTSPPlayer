@@ -16,7 +16,7 @@ import CoreGraphics
 public struct VideoMask: Equatable, Sendable, Codable {
 
 	/// Where the mask sits in the chain that runs picture → fisheye correction
-	/// → framing → view.
+	/// → perspective → framing → view.
 	public enum Anchor: Sendable, Codable, CaseIterable {
 		/// First: pinned to the picture the camera sends. The rectangle turns and
 		/// travels with the image, and bows with a fisheye correction.

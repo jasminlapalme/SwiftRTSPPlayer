@@ -29,7 +29,7 @@ func scissorRect(for mask: VideoMask, in destination: CGRect) -> CGRect {
 		.intersection(destination)
 }
 
-/// Applies a framing — fit, scale, translation, rotation, fisheye, mask — into
+/// Applies a framing — fit, scale, translation, rotation, fisheye, perspective, mask — into
 /// any texture, so the screen and a broadcast are drawn by the same code.
 final class MetalVideoRenderer {
 
@@ -39,6 +39,7 @@ final class MetalVideoRenderer {
 		var k3v: Float
 		var k4v: Float
 		var aspect: Float
+		var expansion: Float
 	}
 
 	private struct MaskUniforms {
@@ -181,7 +182,8 @@ final class MetalVideoRenderer {
 			k2v: Float(layer.fisheyeCorrection.k2v),
 			k3v: Float(layer.fisheyeCorrection.k3v),
 			k4v: Float(layer.fisheyeCorrection.k4v),
-			aspect: sourceHeight > 0 ? Float(sourceWidth) / Float(sourceHeight) : 1
+			aspect: sourceHeight > 0 ? Float(sourceWidth) / Float(sourceHeight) : 1,
+			expansion: Float(layer.fisheyeCorrection.expansion)
 		)
 		encoder.setFragmentBytes(&fisheye, length: MemoryLayout<FisheyeUniforms>.size, index: 0)
 		// Only an image-anchored mask reaches the shader; the other one was the
@@ -194,6 +196,8 @@ final class MetalVideoRenderer {
 			bottom: Float(sampled.bottom)
 		)
 		encoder.setFragmentBytes(&mask, length: MemoryLayout<MaskUniforms>.size, index: 1)
+		var perspective = layer.perspective.shaderHomography
+		encoder.setFragmentBytes(&perspective, length: MemoryLayout<simd_float3x3>.size, index: 2)
 
 		encoder.drawPrimitives(type: .triangleStrip, vertexStart: 0, vertexCount: 4)
 	}

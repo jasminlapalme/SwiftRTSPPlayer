@@ -188,6 +188,51 @@ struct CompositorRenderTests {
 		#expect(centre.red > 250)
 	}
 
+	@Test("An expansion zooms the picture out, leaving black around it")
+	func expansionZoomsOut() async throws {
+		try #require(MTLCreateSystemDefaultDevice() != nil)
+		let compositor = try #require(RTSPCompositor(width: 32, height: 32))
+		let picture = try #require(makePicture(width: 32, height: 32, luma: 235, chroma: 128))
+
+		// Twice as far: the picture now fills only the middle half of each axis.
+		let layer = RTSPCompositionLayer(
+			pixelBuffer: picture,
+			frame: CGRect(x: 0, y: 0, width: 32, height: 32),
+			fisheyeCorrection: FisheyeCorrection(expansion: 2)
+		)
+		let frame = try #require(await compositor.render(layers: [layer], time: .zero))
+
+		let outside = try #require(colour(of: frame, atX: 0.1, y: 0.1))
+		#expect(outside == Colour(red: 0, green: 0, blue: 0))
+		let inside = try #require(colour(of: frame, atX: 0.35, y: 0.35))
+		#expect(inside.red > 250)
+	}
+
+	@Test("A perspective reaching past the picture shrinks it, leaving black at the border")
+	func perspectiveShrinksThePicture() async throws {
+		try #require(MTLCreateSystemDefaultDevice() != nil)
+		let compositor = try #require(RTSPCompositor(width: 32, height: 32))
+		let picture = try #require(makePicture(width: 32, height: 32, luma: 235, chroma: 128))
+
+		// A trapezoid twice the picture's size: the frame's corners fall outside it.
+		let layer = RTSPCompositionLayer(
+			pixelBuffer: picture,
+			frame: CGRect(x: 0, y: 0, width: 32, height: 32),
+			perspective: VideoPerspective(
+				topLeft: CGPoint(x: -0.8, y: -0.5),
+				topRight: CGPoint(x: 1.8, y: -0.5),
+				bottomRight: CGPoint(x: 1.5, y: 1.5),
+				bottomLeft: CGPoint(x: -0.5, y: 1.5)
+			)
+		)
+		let frame = try #require(await compositor.render(layers: [layer], time: .zero))
+
+		let border = try #require(colour(of: frame, atX: 0.05, y: 0.05))
+		#expect(border == Colour(red: 0, green: 0, blue: 0))
+		let centre = try #require(centreColour(of: frame))
+		#expect(centre.red > 250)
+	}
+
 	@Test("Odd dimensions are rounded up — encoders reject them")
 	func roundsToEvenDimensions() async throws {
 		try #require(MTLCreateSystemDefaultDevice() != nil)

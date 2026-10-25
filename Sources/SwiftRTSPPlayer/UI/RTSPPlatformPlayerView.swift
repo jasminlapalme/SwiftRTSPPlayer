@@ -13,10 +13,15 @@ struct RTSPPlatformPlayerView: UIViewRepresentable {
 	let scale: CGFloat
 	let translation: CGPoint
 	let fisheyeCorrection: FisheyeCorrection
+	let perspective: VideoPerspective
+	let isEditingPerspective: Bool
 	let mask: VideoMask
 	let interaction: RTSPVideoInteraction
 	let transformLimits: RTSPTransformLimits
 	let onTransformChange: (RTSPTransform) -> Void
+	let onVideoSizeChange: (CGSize) -> Void
+	let pictureHandler: RTSPPictureHandler?
+	let pictureInterval: Duration
 	@Binding var playbackState: RTSPPlaybackState
 
 	func makeCoordinator() -> RTSPPlayerCoordinator {
@@ -45,6 +50,8 @@ struct RTSPPlatformPlayerView: UIViewRepresentable {
 	static func dismantleUIView(_ uiView: RTSPMetalView, coordinator: RTSPPlayerCoordinator) {
 		coordinator.stopObservingPlaybackState()
 		uiView.onTransformChange = nil
+		uiView.onVideoSizeChange = nil
+		uiView.onPicture(perform: nil)
 		uiView.stop()
 	}
 
@@ -53,10 +60,14 @@ struct RTSPPlatformPlayerView: UIViewRepresentable {
 		view.scale = scale
 		view.translation = translation
 		view.fisheyeCorrection = fisheyeCorrection
+		view.perspective = perspective
+		view.isEditingPerspective = isEditingPerspective
 		view.videoMask = mask
 		view.interaction = interaction
 		view.transformLimits = transformLimits
 		view.onTransformChange = onTransformChange
+		view.onVideoSizeChange = onVideoSizeChange
+		view.onPicture(minimumInterval: pictureInterval, perform: pictureHandler)
 	}
 }
 
@@ -68,10 +79,15 @@ struct RTSPPlatformPlayerView: NSViewRepresentable {
 	let scale: CGFloat
 	let translation: CGPoint
 	let fisheyeCorrection: FisheyeCorrection
+	let perspective: VideoPerspective
+	let isEditingPerspective: Bool
 	let mask: VideoMask
 	let interaction: RTSPVideoInteraction
 	let transformLimits: RTSPTransformLimits
 	let onTransformChange: (RTSPTransform) -> Void
+	let onVideoSizeChange: (CGSize) -> Void
+	let pictureHandler: RTSPPictureHandler?
+	let pictureInterval: Duration
 	@Binding var playbackState: RTSPPlaybackState
 
 	func makeCoordinator() -> RTSPPlayerCoordinator {
@@ -100,6 +116,8 @@ struct RTSPPlatformPlayerView: NSViewRepresentable {
 	static func dismantleNSView(_ nsView: RTSPMetalView, coordinator: RTSPPlayerCoordinator) {
 		coordinator.stopObservingPlaybackState()
 		nsView.onTransformChange = nil
+		nsView.onVideoSizeChange = nil
+		nsView.onPicture(perform: nil)
 		nsView.stop()
 	}
 
@@ -108,10 +126,14 @@ struct RTSPPlatformPlayerView: NSViewRepresentable {
 		view.scale = scale
 		view.translation = translation
 		view.fisheyeCorrection = fisheyeCorrection
+		view.perspective = perspective
+		view.isEditingPerspective = isEditingPerspective
 		view.videoMask = mask
 		view.interaction = interaction
 		view.transformLimits = transformLimits
 		view.onTransformChange = onTransformChange
+		view.onVideoSizeChange = onVideoSizeChange
+		view.onPicture(minimumInterval: pictureInterval, perform: pictureHandler)
 	}
 }
 
